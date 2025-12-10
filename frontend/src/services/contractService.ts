@@ -1,6 +1,6 @@
 import { Address } from 'viem';
 import { ethers } from 'ethers';
-import BundleTokenArtifact from '../../../contracts/artifacts/contracts/BundleToken.sol/BundleToken.json';
+import BundleTokenArtifact from '../contracts/artifacts/contracts/BundleToken.sol/BundleToken.json';
 
 /**
  * Contract Service for BundleToken interactions
