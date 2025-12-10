@@ -169,25 +169,22 @@ function App() {
               </div>
             ) : (
               <div className="max-w-4xl mx-auto space-y-6">
-                {/* World ID Verification */}
-                <WorldIDVerification 
-                  onVerified={setIsVerified}
-                  required={true}
-                />
+                {/* World ID Verification - Optional */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-300 mb-3">
+                    <strong>Optional:</strong> World ID verification is available but not required. You can create bundles without it.
+                  </p>
+                  <WorldIDVerification 
+                    onVerified={setIsVerified}
+                    required={false}
+                  />
+                </div>
 
                 {/* AI Bundle Assistant */}
                 <AIBundleAssistant onSuggest={handleAISuggest} />
 
-                {/* Music Bundle Creator */}
-                {isVerified ? (
-                  <MusicBundleCreator onBundleCreate={handleBundleCreate} />
-                ) : (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
-                    <p className="text-yellow-800">
-                      Please verify with World ID to create bundles
-                    </p>
-                  </div>
-                )}
+                {/* Music Bundle Creator - Always available */}
+                <MusicBundleCreator onBundleCreate={handleBundleCreate} />
               </div>
             )}
           </div>
