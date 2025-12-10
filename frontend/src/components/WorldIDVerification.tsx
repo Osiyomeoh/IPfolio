@@ -49,6 +49,7 @@ console.log('🌍 World ID App ID loaded:', WORLD_ID_APP_ID);
 export default function WorldIDVerification({ onVerified, required = false }: WorldIDVerificationProps) {
   const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useDeviceVerification, setUseDeviceVerification] = useState(false);
 
   // handleVerify is called when the proof is received - sends to backend for verification
   const handleVerify = async (proof: ISuccessResult) => {
@@ -178,7 +179,7 @@ export default function WorldIDVerification({ onVerified, required = false }: Wo
                 handleVerify={handleVerify} // Callback when proof is received - sends to backend
                 onSuccess={onSuccess} // Callback when modal closes after success
                 onError={handleError} // Callback for errors
-                verification_level={VerificationLevel.Orb} // Use VerificationLevel.Device for phone verification
+                verification_level={useDeviceVerification ? VerificationLevel.Device : VerificationLevel.Orb}
               >
                 {({ open }) => (
                   <button
@@ -196,16 +197,30 @@ export default function WorldIDVerification({ onVerified, required = false }: Wo
                   </button>
                 )}
               </IDKitWidget>
-              <div className="mt-2 space-y-1">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  App ID: {WORLD_ID_APP_ID.substring(0, 25)}...
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Action: verify-human
-                </p>
-                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-                  ⚠️ If verification fails, ensure "verify-human" action is created in World ID dashboard
-                </p>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="use-device"
+                    checked={useDeviceVerification}
+                    onChange={(e) => setUseDeviceVerification(e.target.checked)}
+                    className="rounded"
+                  />
+                  <label htmlFor="use-device" className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                    Use Device Verification (phone biometrics) instead of QR scan
+                  </label>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    App ID: {WORLD_ID_APP_ID.substring(0, 25)}...
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Action: verify-human | Mode: {useDeviceVerification ? 'Device' : 'Orb (QR)'}
+                  </p>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                    ⚠️ If QR scan fails, try Device Verification or create "verify-human" action in World ID dashboard
+                  </p>
+                </div>
               </div>
             </div>
           )}
