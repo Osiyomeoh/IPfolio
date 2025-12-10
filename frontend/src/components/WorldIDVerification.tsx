@@ -123,7 +123,7 @@ export default function WorldIDVerification({ onVerified, required = false }: Wo
   // onError is called when there's an error in the IDKit flow
   const handleError = (error: IErrorState) => {
     console.error('❌ World ID IDKit error:', error);
-    const errorMessage = error.code || error.detail || 'Verification failed. Please try again.';
+    const errorMessage = error.code || 'Verification failed. Please try again.';
     setError(errorMessage);
     setIsVerified(false);
     if (onVerified) {
