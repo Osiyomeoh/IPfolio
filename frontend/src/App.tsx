@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, TrendingUp, Shield, Zap, Music, Wand2 } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWalletClient } from 'wagmi';
+import { BrowserProvider } from 'ethers';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MusicBundleCreator from './components/MusicBundleCreator';
@@ -10,30 +11,89 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import HowItWorks from './pages/HowItWorks';
 import { SigmaMusicTrack } from './data/sigmaMusicIPs';
+import { deployBundleToken, calculateRoyaltyShares, type BundleConfig } from './services/contractService';
+import { aeneid } from './config/chains';
 
 type View = 'home' | 'create' | 'marketplace' | 'privacy' | 'terms' | 'how-it-works';
 
 function App() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const [currentView, setCurrentView] = useState<View>('home');
   const [isVerified, setIsVerified] = useState(false); // World ID verification status (optional)
+  const [isDeploying, setIsDeploying] = useState(false);
   const [createdBundles, setCreatedBundles] = useState<Array<{
     name: string;
     symbol: string;
     description: string;
     tracks: SigmaMusicTrack[];
     address?: string;
+    txHash?: string;
   }>>([]);
 
-  const handleBundleCreate = (bundle: {
+  const handleBundleCreate = async (bundle: {
     name: string;
     symbol: string;
     description: string;
     tracks: SigmaMusicTrack[];
   }) => {
-    setCreatedBundles([...createdBundles, bundle]);
-    alert(`Bundle "${bundle.name}" created successfully! 🎉\n\nThis would deploy to Story Protocol in production.`);
-    setCurrentView('marketplace');
+    if (!walletClient || !address) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    setIsDeploying(true);
+
+    try {
+      // Convert wallet client to ethers signer
+      const provider = new BrowserProvider(walletClient as any);
+      const signer = await provider.getSigner();
+
+      // Prepare bundle configuration
+      const ipAssets = bundle.tracks.map(track => track.ipAssetAddress as `0x${string}`);
+      const shares = calculateRoyaltyShares(bundle.tracks.length);
+      const totalSupply = '10000'; // Default total supply
+
+      const config: BundleConfig = {
+        name: bundle.name,
+        symbol: bundle.symbol,
+        description: bundle.description,
+        ipAssets,
+        shares,
+        totalSupply,
+      };
+
+      console.log('📦 Deploying bundle contract...', config);
+
+      // Deploy the contract
+      const result = await deployBundleToken(signer, config);
+
+      console.log('✅ Bundle deployed!', result);
+
+      // Add to created bundles with contract address
+      const newBundle = {
+        ...bundle,
+        address: result.address,
+        txHash: result.txHash,
+      };
+
+      setCreatedBundles([...createdBundles, newBundle]);
+
+      // Show success message with contract address
+      alert(
+        `Bundle "${bundle.name}" deployed successfully! 🎉\n\n` +
+        `Contract Address: ${result.address}\n` +
+        `Transaction: ${result.txHash}\n\n` +
+        `View on explorer: https://aeneid.explorer.story.foundation/address/${result.address}`
+      );
+
+      setCurrentView('marketplace');
+    } catch (error: any) {
+      console.error('Error deploying bundle:', error);
+      alert(`Failed to deploy bundle: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsDeploying(false);
+    }
   };
 
   const handleAISuggest = (suggestion: {
@@ -184,7 +244,21 @@ function App() {
                 <AIBundleAssistant onSuggest={handleAISuggest} />
 
                 {/* Music Bundle Creator - Always available */}
-                <MusicBundleCreator onBundleCreate={handleBundleCreate} />
+                {isDeploying ? (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 text-center">
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                      <p className="text-blue-800 dark:text-blue-300 font-medium">
+                        Deploying bundle contract to blockchain...
+                      </p>
+                    </div>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
+                      Please confirm the transaction in your wallet
+                    </p>
+                  </div>
+                ) : (
+                  <MusicBundleCreator onBundleCreate={handleBundleCreate} />
+                )}
               </div>
             )}
           </div>

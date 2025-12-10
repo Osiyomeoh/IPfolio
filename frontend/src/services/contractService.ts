@@ -1,5 +1,6 @@
 import { Address } from 'viem';
-import { ethers, ContractFactory, Contract, Signer, Provider } from 'ethers';
+import { ethers } from 'ethers';
+import BundleTokenArtifact from '../../../contracts/artifacts/contracts/BundleToken.sol/BundleToken.json';
 
 /**
  * Contract Service for BundleToken interactions
@@ -10,21 +11,9 @@ import { ethers, ContractFactory, Contract, Signer, Provider } from 'ethers';
  * - Interacting with deployed bundles
  */
 
-// ABI for BundleToken (from compiled artifact)
-export const BUNDLE_TOKEN_ABI = [
-  'function name() view returns (string)',
-  'function symbol() view returns (string)',
-  'function totalSupply() view returns (uint256)',
-  'function balanceOf(address) view returns (uint256)',
-  'function getIPAssets() view returns (address[])',
-  'function distributeRoyalties() payable',
-  'function claimRoyalties() returns (uint256)',
-  'function getClaimableRoyalties(address) view returns (uint256)',
-  'function totalRoyaltiesCollected() view returns (uint256)',
-  'function owner() view returns (address)',
-  'function bundleDescription() view returns (string)',
-  'function createdAt() view returns (uint256)',
-] as const;
+// ABI and bytecode from compiled artifact
+export const BUNDLE_TOKEN_ABI = BundleTokenArtifact.abi;
+export const BUNDLE_TOKEN_BYTECODE = BundleTokenArtifact.bytecode;
 
 // We'll need to import the bytecode from the artifact
 // For now, we'll use a factory pattern or deploy via a factory contract
@@ -51,15 +40,13 @@ export interface BundleInfo {
 /**
  * Deploy a new BundleToken contract
  * 
- * Note: This requires the BundleToken bytecode. For production, you would:
- * 1. Import bytecode from artifacts
- * 2. Or use a factory contract
- * 3. Or deploy via a backend service
+ * @param signer - Ethers signer (from wagmi useWalletClient)
+ * @param config - Bundle configuration
+ * @returns Contract address and transaction hash
  */
 export async function deployBundleToken(
-  signer: Signer,
-  config: BundleConfig,
-  bytecode?: string
+  signer: ethers.Signer,
+  config: BundleConfig
 ): Promise<{ address: Address; txHash: string }> {
   try {
     // Validate shares sum to 10000 (100%)
@@ -68,21 +55,26 @@ export async function deployBundleToken(
       throw new Error(`Shares must sum to 10000 (100%), got ${totalShares}`);
     }
 
-    if (!bytecode) {
-      // For demo purposes, we'll simulate deployment
-      // In production, load bytecode from artifacts
-      throw new Error('Bytecode required for deployment. Please load from artifacts or use a factory contract.');
+    // Validate IP assets and shares arrays match
+    if (config.ipAssets.length !== config.shares.length) {
+      throw new Error(`IP assets (${config.ipAssets.length}) and shares (${config.shares.length}) arrays must have the same length`);
     }
 
-    // Create contract factory
-    const BundleTokenFactory = new ContractFactory(
+    // Create contract factory with bytecode from artifact
+    const BundleTokenFactory = new ethers.ContractFactory(
       BUNDLE_TOKEN_ABI,
-      bytecode,
+      BUNDLE_TOKEN_BYTECODE,
       signer
     );
 
     // Deploy the contract
-    console.log('Deploying BundleToken...', config);
+    console.log('🚀 Deploying BundleToken contract...', {
+      name: config.name,
+      symbol: config.symbol,
+      ipAssets: config.ipAssets.length,
+      totalSupply: config.totalSupply
+    });
+
     const bundleToken = await BundleTokenFactory.deploy(
       config.name,
       config.symbol,
@@ -92,17 +84,24 @@ export async function deployBundleToken(
       ethers.parseEther(config.totalSupply)
     );
 
+    console.log('⏳ Waiting for deployment transaction...');
     await bundleToken.waitForDeployment();
+    
     const address = await bundleToken.getAddress();
     const deploymentTx = bundleToken.deploymentTransaction();
+
+    console.log('✅ BundleToken deployed successfully!', {
+      address,
+      txHash: deploymentTx?.hash
+    });
 
     return {
       address: address as Address,
       txHash: deploymentTx?.hash || '',
     };
-  } catch (error) {
-    console.error('Error deploying BundleToken:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('❌ Error deploying BundleToken:', error);
+    throw new Error(error.message || 'Failed to deploy bundle contract');
   }
 }
 
@@ -110,11 +109,11 @@ export async function deployBundleToken(
  * Get bundle information from deployed contract
  */
 export async function getBundleInfo(
-  provider: Provider,
+  provider: ethers.Provider,
   bundleAddress: Address
 ): Promise<BundleInfo> {
   try {
-    const bundleToken = new Contract(
+    const bundleToken = new ethers.Contract(
       bundleAddress,
       BUNDLE_TOKEN_ABI,
       provider
@@ -148,12 +147,12 @@ export async function getBundleInfo(
  * Distribute royalties to a bundle
  */
 export async function distributeRoyalties(
-  signer: Signer,
+  signer: ethers.Signer,
   bundleAddress: Address,
   amount: string // In ETH/IP
 ): Promise<string> {
   try {
-    const bundleToken = new Contract(
+    const bundleToken = new ethers.Contract(
       bundleAddress,
       BUNDLE_TOKEN_ABI,
       signer
@@ -175,11 +174,11 @@ export async function distributeRoyalties(
  * Claim royalties from a bundle
  */
 export async function claimRoyalties(
-  signer: Signer,
+  signer: ethers.Signer,
   bundleAddress: Address
 ): Promise<{ txHash: string; amount: string }> {
   try {
-    const bundleToken = new Contract(
+    const bundleToken = new ethers.Contract(
       bundleAddress,
       BUNDLE_TOKEN_ABI,
       signer
@@ -192,7 +191,7 @@ export async function claimRoyalties(
     const receipt = await tx.wait();
 
     return {
-      txHash: receipt.hash,
+      txHash: receipt!.hash,
       amount: ethers.formatEther(claimableBefore),
     };
   } catch (error) {
@@ -205,12 +204,12 @@ export async function claimRoyalties(
  * Get claimable royalties for a user
  */
 export async function getClaimableRoyalties(
-  provider: Provider,
+  provider: ethers.Provider,
   bundleAddress: Address,
   userAddress: Address
 ): Promise<string> {
   try {
-    const bundleToken = new Contract(
+    const bundleToken = new ethers.Contract(
       bundleAddress,
       BUNDLE_TOKEN_ABI,
       provider
