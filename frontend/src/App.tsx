@@ -298,14 +298,38 @@ function App() {
                       </div>
                     </div>
                     <p className="text-gray-600 dark:text-gray-300 mb-4">{bundle.description}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {bundle.tracks.length} tracks
-                      </span>
-                      <button className="px-4 py-2 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 rounded-lg text-white text-sm font-semibold transition-colors">
-                        View Details
-                      </button>
-                    </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {bundle.tracks.length} tracks
+                              </span>
+                              {bundle.address && (
+                                <span className="text-xs text-green-600 dark:text-green-400 font-mono">
+                                  ✓ Deployed
+                                </span>
+                              )}
+                            </div>
+                            {bundle.address && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
+                                {bundle.address}
+                              </div>
+                            )}
+                            <div className="flex gap-2">
+                              {bundle.address && (
+                                <a
+                                  href={`https://aeneid.explorer.story.foundation/address/${bundle.address}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 px-3 py-2 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-lg text-white text-xs font-semibold transition-all text-center"
+                                >
+                                  View on Explorer
+                                </a>
+                              )}
+                              <button className="flex-1 px-3 py-2 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 rounded-lg text-white text-xs font-semibold transition-all">
+                                View Details
+                              </button>
+                            </div>
+                          </div>
                   </div>
                 ))}
               </div>
