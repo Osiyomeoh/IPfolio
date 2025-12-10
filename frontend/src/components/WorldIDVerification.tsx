@@ -50,43 +50,51 @@ export default function WorldIDVerification({ onVerified, required = false }: Wo
   const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleVerify = async (result: ISuccessResult) => {
+  // handleVerify is called when the proof is received - sends to backend for verification
+  const handleVerify = async (proof: ISuccessResult) => {
     try {
-      // Verify the proof on your backend
-      // For hackathon demo, we'll verify client-side
-      // In production, send proof to your backend for verification
-      
+      // Send proof to backend for verification
+      // The backend MUST verify the proof server-side using verifyCloudProof
       const response = await fetch('/api/verify-world-id', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          proof: result.proof,
-          merkle_root: result.merkle_root,
-          nullifier_hash: result.nullifier_hash,
-          verification_level: result.verification_level,
-        }),
+        body: JSON.stringify(proof), // Send the entire proof object
       });
 
-      // For hackathon demo, if backend doesn't exist, we'll accept the proof
-      // In production, you MUST verify on the backend
-      const verified = response.ok || true; // Remove `|| true` in production
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Verification failed. Please try again.');
+      }
+
+      const verifyResult = await response.json();
       
-      setIsVerified(verified);
-      if (onVerified) {
-        onVerified(verified);
+      // If verification succeeds, set verified state
+      if (verifyResult.success) {
+        setIsVerified(true);
+        setError(null);
+        if (onVerified) {
+          onVerified(true);
+        }
+      } else {
+        throw new Error(verifyResult.error || 'Verification failed.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('World ID verification error:', err);
-      setError('Verification failed. Please try again.');
-      setIsVerified(false);
-      if (onVerified) {
-        onVerified(false);
-      }
+      // IDKit will display this error message to the user in the modal
+      throw err; // Re-throw so IDKit can display the error
     }
   };
 
+  // onSuccess is called when the modal is closed after successful verification
+  const onSuccess = () => {
+    // This is where you perform actions after successful verification
+    // The verification state is already set in handleVerify
+    console.log('World ID verification successful!');
+  };
+
+  // onError is called when there's an error in the IDKit flow
   const handleError = (error: IErrorState) => {
     console.error('World ID error:', error);
     setError(error.code || 'Verification failed. Please try again.');
@@ -140,9 +148,9 @@ export default function WorldIDVerification({ onVerified, required = false }: Wo
             <IDKitWidget
               app_id={WORLD_ID_APP_ID}
               action="ipfolio-bundle-creation"
-              signal="bundle-creation"
-              onSuccess={handleVerify}
-              onError={handleError}
+              handleVerify={handleVerify} // Callback when proof is received - sends to backend
+              onSuccess={onSuccess} // Callback when modal closes after success
+              onError={handleError} // Callback for errors
               verification_level={VerificationLevel.Orb} // Use VerificationLevel.Device for phone verification
             >
               {({ open }) => (
