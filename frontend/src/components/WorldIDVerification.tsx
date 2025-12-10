@@ -174,7 +174,7 @@ export default function WorldIDVerification({ onVerified, required = false }: Wo
             <div>
               <IDKitWidget
                 app_id={WORLD_ID_APP_ID}
-                action="ipfolio-bundle-creation"
+                action="verify-human" // Simple action name - must match World ID dashboard
                 handleVerify={handleVerify} // Callback when proof is received - sends to backend
                 onSuccess={onSuccess} // Callback when modal closes after success
                 onError={handleError} // Callback for errors
@@ -183,7 +183,10 @@ export default function WorldIDVerification({ onVerified, required = false }: Wo
                 {({ open }) => (
                   <button
                     onClick={() => {
-                      console.log('🌍 Opening World ID verification...', { app_id: WORLD_ID_APP_ID });
+                      console.log('🌍 Opening World ID verification...', { 
+                        app_id: WORLD_ID_APP_ID,
+                        action: 'verify-human'
+                      });
                       open();
                     }}
                     className="px-6 py-3 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-lg font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -193,9 +196,17 @@ export default function WorldIDVerification({ onVerified, required = false }: Wo
                   </button>
                 )}
               </IDKitWidget>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                App ID: {WORLD_ID_APP_ID.substring(0, 20)}...
-              </p>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  App ID: {WORLD_ID_APP_ID.substring(0, 25)}...
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Action: verify-human
+                </p>
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                  ⚠️ If verification fails, ensure "verify-human" action is created in World ID dashboard
+                </p>
+              </div>
             </div>
           )}
 
