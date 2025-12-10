@@ -16,7 +16,7 @@ type View = 'home' | 'create' | 'marketplace' | 'privacy' | 'terms' | 'how-it-wo
 function App() {
   const { isConnected } = useAccount();
   const [currentView, setCurrentView] = useState<View>('home');
-  const [isVerified, setIsVerified] = useState(false);
+  const [isVerified, setIsVerified] = useState(false); // World ID verification status (optional)
   const [createdBundles, setCreatedBundles] = useState<Array<{
     name: string;
     symbol: string;
