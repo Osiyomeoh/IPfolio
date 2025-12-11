@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Music, Play, Plus, CheckCircle, Sparkles } from 'lucide-react';
+import { Music, Play, Plus, CheckCircle, Sparkles, Upload } from 'lucide-react';
 import { SIGMA_MUSIC_TRACKS, SigmaMusicTrack, MUSIC_BUNDLE_TEMPLATES } from '../data/sigmaMusicIPs';
 
 interface MusicBundleCreatorProps {
@@ -19,6 +19,19 @@ export default function MusicBundleCreator({ onBundleCreate, registeredTracks = 
   const [bundleDescription, setBundleDescription] = useState('');
   const [playingTrack, setPlayingTrack] = useState<string | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [selectedGenre, setSelectedGenre] = useState<string>('All');
+
+  // Combine Sigma Music tracks with user-registered tracks
+  const allAvailableTracks = [...SIGMA_MUSIC_TRACKS, ...registeredTracks];
+  const genres = Array.from(new Set(allAvailableTracks.map(t => t.genre)));
+  const filteredTracks = selectedGenre === 'All'
+    ? allAvailableTracks
+    : allAvailableTracks.filter(t => t.genre === selectedGenre);
+
+  // Helper to check if track is user-registered
+  const isUserRegisteredTrack = (track: SigmaMusicTrack) => {
+    return registeredTracks.some(rt => rt.ipAssetAddress === track.ipAssetAddress);
+  };
 
   const toggleTrack = (track: SigmaMusicTrack) => {
     if (selectedTracks.find(t => t.ipAssetAddress === track.ipAssetAddress)) {
@@ -52,14 +65,6 @@ export default function MusicBundleCreator({ onBundleCreate, registeredTracks = 
     }
   };
 
-      // Combine Sigma Music tracks with user-registered tracks
-      const allAvailableTracks = [...SIGMA_MUSIC_TRACKS, ...registeredTracks];
-      const genres = Array.from(new Set(allAvailableTracks.map(t => t.genre)));
-      const [selectedGenre, setSelectedGenre] = useState<string>('All');
-      const filteredTracks = selectedGenre === 'All'
-        ? allAvailableTracks
-        : allAvailableTracks.filter(t => t.genre === selectedGenre);
-
   return (
     <div className="max-w-6xl mx-auto">
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 shadow-sm">
@@ -67,7 +72,13 @@ export default function MusicBundleCreator({ onBundleCreate, registeredTracks = 
         <div className="flex items-center gap-3 mb-6">
           <Music className="w-8 h-8 text-purple-600 dark:text-purple-400" />
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Create Music Bundle</h2>
-          <div className="ml-auto">
+          <div className="ml-auto flex gap-2">
+            {registeredTracks.length > 0 && (
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
+                <Upload className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">{registeredTracks.length} Your Track{registeredTracks.length !== 1 ? 's' : ''}</span>
+              </div>
+            )}
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
               <Sparkles className="w-4 h-4 mr-2 text-green-600 dark:text-green-400" />
               <span className="text-sm text-green-700 dark:text-green-300 font-medium">Sigma Music IP</span>
@@ -146,9 +157,21 @@ export default function MusicBundleCreator({ onBundleCreate, registeredTracks = 
           />
         </div>
 
+        {/* Track Count Info */}
+        {registeredTracks.length > 0 && (
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-800 dark:text-blue-300">
+              <strong>📝 You have {registeredTracks.length} registered track{registeredTracks.length !== 1 ? 's' : ''}!</strong> 
+              {' '}Your tracks are marked with a blue "Your Track" badge below.
+            </p>
+          </div>
+        )}
+
         {/* Genre Filter */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Genre</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Filter by Genre ({allAvailableTracks.length} tracks available)
+          </label>
           <div className="flex flex-wrap gap-2">
             {['All', ...genres].map((genre) => (
               <button
@@ -227,12 +250,18 @@ export default function MusicBundleCreator({ onBundleCreate, registeredTracks = 
                 </div>
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{track.trackName}</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{track.artist}</p>
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-xs mb-2">
                   <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded font-medium">
                     {track.genre}
                   </span>
                   <span className="text-gray-500 dark:text-gray-400">{track.royaltyRate} royalty</span>
                 </div>
+                {isUserRegisteredTrack(track) && (
+                  <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                    <Upload className="w-3 h-3" />
+                    <span>Your Track</span>
+                  </div>
+                )}
               </div>
             );
           })}
