@@ -9,9 +9,10 @@ interface MusicBundleCreatorProps {
     description: string;
     tracks: SigmaMusicTrack[];
   }) => void;
+  registeredTracks?: SigmaMusicTrack[]; // Tracks registered by user
 }
 
-export default function MusicBundleCreator({ onBundleCreate }: MusicBundleCreatorProps) {
+export default function MusicBundleCreator({ onBundleCreate, registeredTracks = [] }: MusicBundleCreatorProps) {
   const [selectedTracks, setSelectedTracks] = useState<SigmaMusicTrack[]>([]);
   const [bundleName, setBundleName] = useState('');
   const [bundleSymbol, setBundleSymbol] = useState('');
@@ -51,11 +52,13 @@ export default function MusicBundleCreator({ onBundleCreate }: MusicBundleCreato
     }
   };
 
-  const genres = Array.from(new Set(SIGMA_MUSIC_TRACKS.map(t => t.genre)));
-  const [selectedGenre, setSelectedGenre] = useState<string>('All');
-  const filteredTracks = selectedGenre === 'All' 
-    ? SIGMA_MUSIC_TRACKS 
-    : SIGMA_MUSIC_TRACKS.filter(t => t.genre === selectedGenre);
+      // Combine Sigma Music tracks with user-registered tracks
+      const allAvailableTracks = [...SIGMA_MUSIC_TRACKS, ...registeredTracks];
+      const genres = Array.from(new Set(allAvailableTracks.map(t => t.genre)));
+      const [selectedGenre, setSelectedGenre] = useState<string>('All');
+      const filteredTracks = selectedGenre === 'All'
+        ? allAvailableTracks
+        : allAvailableTracks.filter(t => t.genre === selectedGenre);
 
   return (
     <div className="max-w-6xl mx-auto">

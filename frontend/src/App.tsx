@@ -7,6 +7,8 @@ import Footer from './components/Footer';
 import MusicBundleCreator from './components/MusicBundleCreator';
 import WorldIDVerification from './components/WorldIDVerification';
 import AIBundleAssistant from './components/AIBundleAssistant';
+import TrackUploader from './components/TrackUploader';
+import BundleTrading from './components/BundleTrading';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import HowItWorks from './pages/HowItWorks';
@@ -30,6 +32,8 @@ function App() {
     address?: string;
     txHash?: string;
   }>>([]);
+  const [registeredTracks, setRegisteredTracks] = useState<SigmaMusicTrack[]>([]);
+  const [selectedBundleForTrading, setSelectedBundleForTrading] = useState<string | null>(null);
 
   const handleBundleCreate = async (bundle: {
     name: string;
@@ -240,6 +244,14 @@ function App() {
                   />
                 </div>
 
+                {/* Track Uploader - Register new tracks */}
+                <TrackUploader 
+                  onTrackRegistered={(track) => {
+                    setRegisteredTracks([...registeredTracks, track]);
+                    alert(`Track "${track.trackName}" registered! You can now use it in bundles.`);
+                  }}
+                />
+
                 {/* AI Bundle Assistant */}
                 <AIBundleAssistant onSuggest={handleAISuggest} />
 
@@ -257,7 +269,10 @@ function App() {
                     </p>
                   </div>
                 ) : (
-                  <MusicBundleCreator onBundleCreate={handleBundleCreate} />
+                  <MusicBundleCreator 
+                    onBundleCreate={handleBundleCreate}
+                    registeredTracks={registeredTracks}
+                  />
                 )}
               </div>
             )}
@@ -316,19 +331,38 @@ function App() {
                             )}
                             <div className="flex gap-2">
                               {bundle.address && (
-                                <a
-                                  href={`https://aeneid.explorer.story.foundation/address/${bundle.address}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-1 px-3 py-2 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-lg text-white text-xs font-semibold transition-all text-center"
-                                >
-                                  View on Explorer
-                                </a>
+                                <>
+                                  <a
+                                    href={`https://aeneid.explorer.story.foundation/address/${bundle.address}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 px-3 py-2 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-lg text-white text-xs font-semibold transition-all text-center"
+                                  >
+                                    Explorer
+                                  </a>
+                                  <button
+                                    onClick={() => setSelectedBundleForTrading(
+                                      selectedBundleForTrading === bundle.address ? null : bundle.address || null
+                                    )}
+                                    className="flex-1 px-3 py-2 bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600 rounded-lg text-white text-xs font-semibold transition-all"
+                                  >
+                                    {selectedBundleForTrading === bundle.address ? 'Hide Trade' : 'Trade'}
+                                  </button>
+                                </>
                               )}
                               <button className="flex-1 px-3 py-2 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 rounded-lg text-white text-xs font-semibold transition-all">
-                                View Details
+                                Details
                               </button>
                             </div>
+                            {selectedBundleForTrading === bundle.address && bundle.address && (
+                              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <BundleTrading
+                                  bundleAddress={bundle.address}
+                                  bundleSymbol={bundle.symbol}
+                                  bundleName={bundle.name}
+                                />
+                              </div>
+                            )}
                           </div>
                   </div>
                 ))}
