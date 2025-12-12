@@ -8,15 +8,16 @@
  * ⛓️ REAL BLOCKCHAIN REGISTRATION - Uses Story Protocol SDK for on-chain transactions
  */
 
-import { StoryClient, StoryConfig, SupportedChainIds } from '@story-protocol/core-sdk';
-import { WalletClient, Address } from 'viem';
+import { StoryClient, StoryConfig, SupportedChainIds, PILFlavor, WIP_TOKEN_ADDRESS } from '@story-protocol/core-sdk';
+import { WalletClient, Address, parseEther } from 'viem';
 import { http } from 'viem';
 import { aeneid } from '../config/chains';
 
 // SPG NFT Contract addresses for Story Protocol testnets
-// These are the default SPG NFT contracts for minting IP assets
+// Default: Public collection provided by Story Protocol for Aeneid testnet
+// Source: https://docs.story.foundation/docs/register-ip-asset
 const SPG_NFT_CONTRACTS: Record<number, Address> = {
-  1315: (process.env.REACT_APP_SPG_NFT_CONTRACT_AENEID || '0x0000000000000000000000000000000000000000') as Address, // Aeneid
+  1315: (process.env.REACT_APP_SPG_NFT_CONTRACT_AENEID || '0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc') as Address, // Aeneid - public collection
   1516: (process.env.REACT_APP_SPG_NFT_CONTRACT_ODYSSEY || '0x0000000000000000000000000000000000000000') as Address, // Odyssey
 };
 
@@ -114,72 +115,41 @@ export async function registerIPAsset(
         },
       });
     } else {
-      // Use mint-and-register workflow for music tracks
+      // Use registerIpAsset with mint workflow for music tracks
       // This mints an NFT and registers it as an IP asset in one transaction
-      let spgNftContract = SPG_NFT_CONTRACTS[aeneid.id];
+      const spgNftContract = SPG_NFT_CONTRACTS[aeneid.id];
       
-      // If not configured, try to get it dynamically or use a fallback
       if (!spgNftContract || spgNftContract === '0x0000000000000000000000000000000000000000') {
-        // Try to get SPG NFT contract from Story Protocol's IP Asset Registry
-        // The registry might have the SPG NFT contract address
-        try {
-          // Query the IP Asset Registry for SPG NFT contract
-          // This is a common pattern - the registry knows about SPG contracts
-          const ipAssetRegistry = storyClient.ipAsset.ipAssetRegistryClient;
-          
-          // Try to get SPG NFT contract from registry (if method exists)
-          // Note: This might not be available in all SDK versions
-          // For now, we'll use a workaround: try common Story Protocol addresses
-          
-          // Known Story Protocol testnet contract addresses (may need updating)
-          // These are based on common Story Protocol deployment patterns
-          // For Aeneid testnet, try querying the chain or use documentation
-          
-          // Fallback: Use a placeholder that will fail with a clear message
-          // The actual address needs to be obtained from Story Protocol
-          throw new Error('SPG_NFT_CONTRACT_REQUIRED');
-        } catch (error: any) {
-          if (error.message === 'SPG_NFT_CONTRACT_REQUIRED') {
-            // Provide clear instructions on how to get the address
-            const errorMessage = 
-              'SPG NFT contract address is required for mint-and-register workflow.\n\n' +
-              'Quick Setup:\n' +
-              '1. Get SPG NFT contract address from Story Protocol:\n' +
-              '   - Check docs: https://docs.story.foundation\n' +
-              '   - Check explorer: https://aeneid.explorer.story.foundation\n' +
-              '   - Ask in Story Protocol Discord\n\n' +
-              '2. Add to frontend/.env file:\n' +
-              '   REACT_APP_SPG_NFT_CONTRACT_AENEID=0x...\n\n' +
-              '3. Restart the dev server\n\n' +
-              'Alternative: If you have an existing NFT contract and token ID,\n' +
-              'you can provide them in the track metadata to use direct registration.';
-            
-            throw new Error(errorMessage);
-          }
-          throw error;
-        }
+        throw new Error(
+          'SPG NFT contract not configured. Please set REACT_APP_SPG_NFT_CONTRACT_AENEID environment variable.\n\n' +
+          'Default public collection for Aeneid: 0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc'
+        );
       }
 
       console.log('🎨 Minting NFT and registering IP asset...', { spgNftContract });
 
       // Get IPFS metadata
       const ipfsHash = params.metadata?.ipfsHash || '';
-      const ipfsUrl = params.metadata?.ipfsUrl || `ipfs://${ipfsHash}`;
+      const ipfsUrl = params.metadata?.ipfsUrl || `https://ipfs.io/ipfs/${ipfsHash}`;
       
-      // Use mint-and-register workflow from ipAsset client
-      // This workflow mints an NFT, registers it as IP, and attaches PIL license terms
-      // The method is on ipAsset client, not a separate workflow client
+      // Get royalty rate from metadata (if provided) for license terms
+      const royaltyRate = params.metadata?.royaltyRate ? parseFloat(params.metadata.royaltyRate as string) : 5; // Default 5%
       
-      // Create PIL license terms data
-      // For basic PIL terms, we can use an empty array or minimal config
-      // The SDK will use default PIL terms if not specified
-      const licenseTermsData: any[] = []; // Empty array uses default PIL terms
-
-      response = await storyClient.ipAsset.mintAndRegisterIpAssetWithPilTerms({
-        spgNftContract,
-        allowDuplicates: true,
-        licenseTermsData,
-        recipient: walletClient.account.address,
+      // Use registerIpAsset with mint type (recommended API)
+      // This is the modern way to mint and register in one transaction
+      // We can also attach license terms during registration
+      response = await storyClient.ipAsset.registerIpAsset({
+        nft: {
+          type: 'mint',
+          spgNftContract,
+        },
+        licenseTermsData: [{
+          terms: PILFlavor.commercialRemix({
+            commercialRevShare: royaltyRate, // Percentage (e.g., 5 = 5%)
+            defaultMintingFee: parseEther('0'), // Free minting for demo
+            currency: WIP_TOKEN_ADDRESS,
+          }),
+        }],
         ipMetadata: {
           ipMetadataURI: ipfsUrl,
           ipMetadataHash: ipfsHash as `0x${string}` || '0x0' as `0x${string}`,
@@ -190,7 +160,6 @@ export async function registerIPAsset(
 
       console.log('✅ NFT minted and IP asset registered:', {
         ipId: response.ipId,
-        tokenId: response.tokenId,
         txHash: response.txHash,
       });
     }
@@ -273,30 +242,28 @@ export async function attachLicenseTerms(
     // Create Story Protocol client
     const storyClient = createStoryClient(walletClient);
 
-    // Attach license terms on blockchain
-    // Story Protocol uses PIL (Programmable IP License) terms
-    // First, we need to create/get license terms ID, then attach it
-    // 
-    // Note: The actual API requires a licenseTermsId, not the full terms object
-    // For a full implementation, we'd need to:
-    // 1. Create PIL terms using the PIL template
-    // 2. Get the license terms ID
-    // 3. Attach it to the IP asset
-    //
-    // For hackathon demo, this is a simplified version
-    // In production, use the license workflow client for full PIL terms support
+    // Note: License terms should be attached during IP registration using registerIpAsset
+    // with licenseTermsData parameter. This function is kept for backward compatibility
+    // but the recommended approach is to attach license terms during registration.
     
-    // For now, we'll use a default PIL terms ID (this would need to be created first)
-    // In production, you'd create the PIL terms and get the ID
-    const licenseTermsId = 1; // This should be the actual PIL terms ID
+    // For attaching license terms to an already registered IP, we need to:
+    // 1. Register PIL terms first
+    // 2. Then attach them to the IP
     
-    const response = await storyClient.license.attachLicenseTerms({
+    // For now, we'll register and attach PIL terms in one call
+    const licenseTermsResponse = await storyClient.license.registerPilTermsAndAttach({
       ipId: ipAssetAddress as `0x${string}`,
-      licenseTermsId,
+      licenseTermsData: [{
+        terms: PILFlavor.commercialRemix({
+          commercialRevShare: licenseTerms.commercialRevShare / 100, // Convert basis points to percentage
+          defaultMintingFee: parseEther('0'), // Free minting for demo
+          currency: WIP_TOKEN_ADDRESS,
+        }),
+      }],
     });
 
-    console.log('✅ License terms attached on blockchain:', response.txHash);
-    return response.txHash || '';
+    console.log('✅ License terms attached on blockchain:', licenseTermsResponse.txHash);
+    return licenseTermsResponse.txHash || '';
   } catch (error: any) {
     console.error('❌ Error attaching license terms:', error);
     throw new Error(`Failed to attach license terms: ${error.message || 'Unknown error'}`);
