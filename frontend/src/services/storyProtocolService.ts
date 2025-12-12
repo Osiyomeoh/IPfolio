@@ -131,16 +131,16 @@ export async function registerIPAsset(
       const ipfsHash = params.metadata?.ipfsHash || '';
       const ipfsUrl = params.metadata?.ipfsUrl || `ipfs://${ipfsHash}`;
       
-      // Use license attachment workflow to mint and register with PIL terms
-      // This workflow mints an NFT, registers it as IP, and attaches license terms
-      const workflowClient = storyClient.licenseAttachment;
+      // Use mint-and-register workflow from ipAsset client
+      // This workflow mints an NFT, registers it as IP, and attaches PIL license terms
+      // The method is on ipAsset client, not a separate workflow client
       
       // Create PIL license terms data
       // For basic PIL terms, we can use an empty array or minimal config
       // The SDK will use default PIL terms if not specified
       const licenseTermsData: any[] = []; // Empty array uses default PIL terms
 
-      response = await workflowClient.mintAndRegisterIpAndAttachPilTerms({
+      response = await storyClient.ipAsset.mintAndRegisterIpAssetWithPilTerms({
         spgNftContract,
         allowDuplicates: true,
         licenseTermsData,
