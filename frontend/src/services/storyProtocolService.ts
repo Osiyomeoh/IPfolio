@@ -9,9 +9,16 @@
  */
 
 import { StoryClient, StoryConfig, SupportedChainIds } from '@story-protocol/core-sdk';
-import { WalletClient } from 'viem';
+import { WalletClient, Address } from 'viem';
 import { http } from 'viem';
 import { aeneid } from '../config/chains';
+
+// SPG NFT Contract addresses for Story Protocol testnets
+// These are the default SPG NFT contracts for minting IP assets
+const SPG_NFT_CONTRACTS: Record<number, Address> = {
+  1315: (process.env.REACT_APP_SPG_NFT_CONTRACT_AENEID || '0x0000000000000000000000000000000000000000') as Address, // Aeneid
+  1516: (process.env.REACT_APP_SPG_NFT_CONTRACT_ODYSSEY || '0x0000000000000000000000000000000000000000') as Address, // Odyssey
+};
 
 export interface IPAssetRegistrationParams {
   name: string;
@@ -107,16 +114,50 @@ export async function registerIPAsset(
         },
       });
     } else {
-      // For music tracks, we would typically use mint-and-register workflow
-      // This requires an SPG NFT contract address
-      // For now, throw a clear error explaining the requirement
-      throw new Error(
-        'NFT contract and token ID are required to register an IP asset on Story Protocol. ' +
-        'For music tracks, you need to either:\n' +
-        '1. Mint an NFT first using an SPG NFT contract, then register it\n' +
-        '2. Use the mint-and-register workflow (requires SPG NFT contract setup)\n\n' +
-        'For hackathon demo, please provide nftContract and tokenId in metadata.'
-      );
+      // Use mint-and-register workflow for music tracks
+      // This mints an NFT and registers it as an IP asset in one transaction
+      const spgNftContract = SPG_NFT_CONTRACTS[aeneid.id];
+      
+      if (!spgNftContract || spgNftContract === '0x0000000000000000000000000000000000000000') {
+        throw new Error(
+          'SPG NFT contract not configured. Please set REACT_APP_SPG_NFT_CONTRACT_AENEID environment variable.\n\n' +
+          'For Story Protocol testnets, you can find SPG NFT contract addresses in the Story Protocol documentation.'
+        );
+      }
+
+      console.log('🎨 Minting NFT and registering IP asset...', { spgNftContract });
+
+      // Get IPFS metadata
+      const ipfsHash = params.metadata?.ipfsHash || '';
+      const ipfsUrl = params.metadata?.ipfsUrl || `ipfs://${ipfsHash}`;
+      
+      // Use license attachment workflow to mint and register with PIL terms
+      // This workflow mints an NFT, registers it as IP, and attaches license terms
+      const workflowClient = storyClient.licenseAttachment;
+      
+      // Create PIL license terms data
+      // For basic PIL terms, we can use an empty array or minimal config
+      // The SDK will use default PIL terms if not specified
+      const licenseTermsData: any[] = []; // Empty array uses default PIL terms
+
+      response = await workflowClient.mintAndRegisterIpAndAttachPilTerms({
+        spgNftContract,
+        allowDuplicates: true,
+        licenseTermsData,
+        recipient: walletClient.account.address,
+        ipMetadata: {
+          ipMetadataURI: ipfsUrl,
+          ipMetadataHash: ipfsHash as `0x${string}` || '0x0' as `0x${string}`,
+          nftMetadataURI: ipfsUrl,
+          nftMetadataHash: ipfsHash as `0x${string}` || '0x0' as `0x${string}`,
+        },
+      });
+
+      console.log('✅ NFT minted and IP asset registered:', {
+        ipId: response.ipId,
+        tokenId: response.tokenId,
+        txHash: response.txHash,
+      });
     }
 
     console.log('✅ IP asset registered on blockchain:', {
