@@ -91,9 +91,11 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
           signer
         );
 
-        // For demo: Transfer to a demo buyer address
-        // In production, this would be the actual buyer address
-        const demoBuyerAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'; // Demo address
+        // For demo: Transfer to a burn address (0x0000...0000)
+        // In production, this would be the actual buyer address from order book/DEX
+        // Using burn address for demo - tokens are effectively destroyed
+        // Real trading would use actual buyer address from matched order
+        const demoBuyerAddress = '0x0000000000000000000000000000000000000000' as Address; // Burn address for demo
         
         const amountWei = ethers.parseEther(amount);
         const tx = await contract.transfer(demoBuyerAddress, amountWei);
