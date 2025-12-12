@@ -139,37 +139,37 @@ export async function registerIPAsset(
       // Story Protocol expects bytes32 hash, not the CID string
       const ipfsHash = ipfsCID ? convertCIDtoHashIPFS(ipfsCID) : '0x0' as `0x${string}`;
       
-      // Get royalty rate from metadata (if provided) for license terms
-      // Story Protocol expects commercialRevShare as a number between 0-100
-      // where 100 represents 100_000_000 (100% in basis points)
-      // So 5% = 5, not 5_000_000
-      const royaltyRatePercent = params.metadata?.royaltyRate ? parseFloat(params.metadata.royaltyRate as string) : 5; // Default 5%
-      
-      // Ensure royalty rate is within valid range (0-100)
-      const validRoyaltyRate = Math.max(0, Math.min(100, royaltyRatePercent));
-      
       // Use registerIpAsset with mint type (recommended API)
       // This is the modern way to mint and register in one transaction
-      // We can also attach license terms during registration
-      response = await storyClient.ipAsset.registerIpAsset({
+      // License terms are optional - we'll register first, then attach terms separately if needed
+      const request: any = {
         nft: {
           type: 'mint',
           spgNftContract,
         },
-        licenseTermsData: [{
-          terms: PILFlavor.commercialRemix({
-            commercialRevShare: validRoyaltyRate, // Percentage (0-100, e.g., 5 = 5%)
-            defaultMintingFee: parseEther('0'), // Free minting for demo
-            currency: WIP_TOKEN_ADDRESS,
-          }),
-        }],
         ipMetadata: {
           ipMetadataURI: ipfsUrl,
           ipMetadataHash: ipfsHash,
           nftMetadataURI: ipfsUrl,
           nftMetadataHash: ipfsHash,
         },
-      });
+      };
+
+      // Add license terms if royalty rate is provided
+      const royaltyRatePercent = params.metadata?.royaltyRate ? parseFloat(params.metadata.royaltyRate as string) : null;
+      if (royaltyRatePercent !== null && royaltyRatePercent > 0) {
+        // Ensure royalty rate is within valid range (0-100)
+        const validRoyaltyRate = Math.max(0, Math.min(100, royaltyRatePercent));
+        request.licenseTermsData = [{
+          terms: PILFlavor.commercialRemix({
+            commercialRevShare: validRoyaltyRate, // Percentage (0-100, e.g., 5 = 5%)
+            defaultMintingFee: parseEther('0'), // Free minting for demo
+            currency: WIP_TOKEN_ADDRESS,
+          }),
+        }];
+      }
+
+      response = await storyClient.ipAsset.registerIpAsset(request);
 
       console.log('✅ NFT minted and IP asset registered:', {
         ipId: response.ipId,
