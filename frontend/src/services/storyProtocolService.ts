@@ -173,19 +173,19 @@ export async function registerIPAsset(
 
       console.log('✅ NFT minted and IP asset registered:', {
         ipId: response.ipId,
-        txHash: response.txHash,
+        txHash: 'txHash' in response ? response.txHash : undefined,
       });
     }
 
     console.log('✅ IP asset registered on blockchain:', {
       ipId: response.ipId,
-      txHash: response.txHash,
+      txHash: 'txHash' in response ? response.txHash : undefined,
     });
 
     return {
       ipAssetId: response.ipId || '',
       ipAssetAddress: response.ipId || '',
-      txHash: response.txHash || '',
+      txHash: ('txHash' in response && response.txHash) || '',
     };
   } catch (error: any) {
     console.error('❌ Error registering IP asset:', error);

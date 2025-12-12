@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Music, Loader } from 'lucide-react';
 import { useAccount, useWalletClient } from 'wagmi';
-import { registerIPAsset, attachLicenseTerms } from '../services/storyProtocolService';
+import { registerIPAsset } from '../services/storyProtocolService';
 import { uploadMetadataToIPFS } from '../services/ipfsService';
 import { aeneid } from '../config/chains';
 import MusicFileUpload from './MusicFileUpload';
