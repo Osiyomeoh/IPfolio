@@ -57,7 +57,7 @@ export async function uploadFileToIPFS(file: File): Promise<IPFSUploadResult> {
 
       return {
         cid: mockCID,
-        url: `https://gateway.pinata.cloud/ipfs/${mockCID}`,
+        url: `${PINATA_GATEWAY}/ipfs/${mockCID}`,
       };
     }
 

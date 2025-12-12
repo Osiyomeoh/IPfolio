@@ -32,6 +32,19 @@ module.exports = function override(config) {
     })
   );
 
+  // Add polyfills for Node.js core modules (needed for @story-protocol/core-sdk)
+  config.resolve.fallback = {
+    ...config.resolve.fallback,
+    "path": false,
+    "os": false,
+    "crypto": false,
+    "fs": false,
+    "stream": false,
+    "util": false,
+    "buffer": false,
+    "process": false,
+  };
+
   return config;
 };
 
