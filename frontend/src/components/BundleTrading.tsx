@@ -31,6 +31,7 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [price] = useState('0.01'); // Price per token in IP/ETH
+  const [recipientAddress, setRecipientAddress] = useState<string>(''); // For selling - recipient address
 
   useEffect(() => {
     if (isConnected && bundleAddress && address) {
@@ -83,26 +84,25 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
           { duration: 8000 }
         );
       } else {
-        // Selling: Transfer tokens to a buyer
-        // In production, this would list on an order book or DEX
+        // Selling: Transfer tokens to recipient address
+        // User can specify their own testnet address to test the full flow
+        if (!recipientAddress || !recipientAddress.startsWith('0x') || recipientAddress.length !== 42) {
+          toast.warning('Please enter a valid recipient address (0x...) to transfer tokens to');
+          return;
+        }
+
         const contract = new ethers.Contract(
           bundleAddress,
           BUNDLE_TOKEN_ABI,
           signer
         );
 
-        // For demo: Transfer to a burn address (0x0000...0000)
-        // In production, this would be the actual buyer address from order book/DEX
-        // Using burn address for demo - tokens are effectively destroyed
-        // Real trading would use actual buyer address from matched order
-        const demoBuyerAddress = '0x0000000000000000000000000000000000000000' as Address; // Burn address for demo
-        
         const amountWei = ethers.parseEther(amount);
-        const tx = await contract.transfer(demoBuyerAddress, amountWei);
+        const tx = await contract.transfer(recipientAddress as Address, amountWei);
         
         toast.success(
-          `Selling ${amount} ${bundleSymbol} tokens...\n\nTransaction: ${tx.hash}\n\nIn production, this would execute a trade with a real buyer.`,
-          { duration: 8000 }
+          `Transferred ${amount} ${bundleSymbol} tokens to ${recipientAddress}\n\nTransaction: ${tx.hash}\n\nYou can now log in with that account to see the tokens!`,
+          { duration: 10000 }
         );
         
         await tx.wait();
@@ -189,6 +189,25 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
         />
       </div>
 
+      {/* Recipient Address Input (for selling) */}
+      {tradeType === 'sell' && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Recipient Address (0x...)
+          </label>
+          <input
+            type="text"
+            value={recipientAddress}
+            onChange={(e) => setRecipientAddress(e.target.value)}
+            placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:border-purple-500 font-mono text-sm"
+          />
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Enter your testnet wallet address to receive tokens. You can then log in with that account to see the bundle!
+          </p>
+        </div>
+      )}
+
       {/* Price Info */}
       <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
         <div className="flex justify-between items-center">
@@ -210,7 +229,12 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
       {/* Trade Button */}
       <button
         onClick={handleTrade}
-        disabled={isLoading || !amount || parseFloat(amount) <= 0}
+        disabled={
+          isLoading || 
+          !amount || 
+          parseFloat(amount) <= 0 ||
+          (tradeType === 'sell' && (!recipientAddress || !recipientAddress.startsWith('0x') || recipientAddress.length !== 42))
+        }
         className={`w-full px-6 py-3 rounded-lg font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
           tradeType === 'buy'
             ? 'bg-green-600 hover:bg-green-700'
@@ -231,7 +255,15 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
       </button>
 
       {/* Info */}
-      <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <p className="text-xs text-blue-700 dark:text-blue-300">
+          <strong>💡 Tip:</strong> When selling, enter your testnet wallet address as the recipient. 
+          After the transaction confirms, log out and log in with that account to see your bundle tokens!
+        </p>
+      </div>
+      
+      {/* Info */}
+      <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
         <p className="text-xs text-yellow-700 dark:text-yellow-300">
           <strong>Note:</strong> This is a simplified trading interface. In production, trading would use:
           <br />• DEX integration (Uniswap, etc.) for liquidity
