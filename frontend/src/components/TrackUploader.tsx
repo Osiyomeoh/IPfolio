@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, Music, Loader } from 'lucide-react';
 import { useAccount, useWalletClient } from 'wagmi';
-import { BrowserProvider } from 'ethers';
 import { registerIPAsset, attachLicenseTerms } from '../services/storyProtocolService';
 import { uploadMetadataToIPFS } from '../services/ipfsService';
 import { aeneid } from '../config/chains';
@@ -67,9 +66,9 @@ export default function TrackUploader({ onTrackRegistered }: TrackUploaderProps)
     setIsRegistering(true);
 
     try {
-      // Convert wallet client to ethers signer
-      const provider = new BrowserProvider(walletClient as any);
-      const signer = await provider.getSigner();
+      if (!walletClient) {
+        throw new Error('Wallet client not available');
+      }
 
       // Step 1: Upload metadata to IPFS
       console.log('📤 Uploading metadata to IPFS...');
@@ -87,9 +86,9 @@ export default function TrackUploader({ onTrackRegistered }: TrackUploaderProps)
       const metadataResult = await uploadMetadataToIPFS(metadata);
       console.log('✅ Metadata uploaded:', metadataResult);
 
-      // Step 2: Register IP asset on Story Protocol
-      console.log('📝 Registering IP asset on Story Protocol...');
-      const registrationResult = await registerIPAsset(signer, {
+      // Step 2: Register IP asset on Story Protocol (REAL BLOCKCHAIN)
+      console.log('📝 Registering IP asset on Story Protocol blockchain...');
+      const registrationResult = await registerIPAsset(walletClient, {
         name: formData.trackName,
         description: formData.description || `Music track by ${formData.artist}`,
         metadata: {
@@ -99,14 +98,15 @@ export default function TrackUploader({ onTrackRegistered }: TrackUploaderProps)
           genre: formData.genre,
           audioCID: audioIPFSCID,
           artworkCID: artworkIPFSCID,
+          royaltyRate: formData.royaltyRate, // Pass royalty rate for license terms
         },
       });
 
-      // Step 3: Attach license terms (PIL - Programmable IP License)
-      console.log('📄 Attaching license terms...');
+      // Step 3: Attach license terms (PIL - Programmable IP License) (REAL BLOCKCHAIN)
+      console.log('📄 Attaching license terms on blockchain...');
       const royaltyBasisPoints = Math.floor(parseFloat(formData.royaltyRate) * 100); // Convert % to basis points
       
-      await attachLicenseTerms(signer, registrationResult.ipAssetAddress, {
+      await attachLicenseTerms(walletClient, registrationResult.ipAssetAddress, {
         commercialUse: true,
         commercialAttribution: true,
         commercialRevShare: royaltyBasisPoints, // e.g., 500 = 5%
