@@ -142,8 +142,9 @@ export async function registerIPAsset(
       
       // Use registerIpAsset with mint type (recommended API)
       // This is the modern way to mint and register in one transaction
-      // License terms are optional - we'll register first, then attach terms separately if needed
-      const request: any = {
+      // For now, register without license terms to avoid parameter issues
+      // License terms can be attached separately after registration if needed
+      response = await storyClient.ipAsset.registerIpAsset({
         nft: {
           type: 'mint',
           spgNftContract,
@@ -154,23 +155,7 @@ export async function registerIPAsset(
           nftMetadataURI: ipfsUrl,
           nftMetadataHash: ipfsHash,
         },
-      };
-
-      // Add license terms if royalty rate is provided
-      const royaltyRatePercent = params.metadata?.royaltyRate ? parseFloat(params.metadata.royaltyRate as string) : null;
-      if (royaltyRatePercent !== null && royaltyRatePercent > 0) {
-        // Ensure royalty rate is within valid range (0-100)
-        const validRoyaltyRate = Math.max(0, Math.min(100, royaltyRatePercent));
-        request.licenseTermsData = [{
-          terms: PILFlavor.commercialRemix({
-            commercialRevShare: validRoyaltyRate, // Percentage (0-100, e.g., 5 = 5%)
-            defaultMintingFee: parseEther('0'), // Free minting for demo
-            currency: WIP_TOKEN_ADDRESS,
-          }),
-        }];
-      }
-
-      response = await storyClient.ipAsset.registerIpAsset(request);
+      });
 
       console.log('✅ NFT minted and IP asset registered:', {
         ipId: response.ipId,
