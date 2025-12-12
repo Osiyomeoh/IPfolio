@@ -8,7 +8,7 @@
  * ⛓️ REAL BLOCKCHAIN REGISTRATION - Uses Story Protocol SDK for on-chain transactions
  */
 
-import { StoryClient, StoryConfig, SupportedChainIds, PILFlavor, WIP_TOKEN_ADDRESS, convertCIDtoHashIPFS } from '@story-protocol/core-sdk';
+import { StoryClient, SupportedChainIds, PILFlavor, WIP_TOKEN_ADDRESS, convertCIDtoHashIPFS } from '@story-protocol/core-sdk';
 import { WalletClient, Address, parseEther } from 'viem';
 import { http } from 'viem';
 import { aeneid } from '../config/chains';
@@ -37,20 +37,21 @@ export interface IPAssetRegistrationResult {
  * Initialize Story Protocol client with real blockchain connection
  * 
  * ⛓️ REAL BLOCKCHAIN - Creates Story SDK client for on-chain transactions
+ * Uses newClientUseWallet to properly handle wallet client
  */
 export function createStoryClient(walletClient: WalletClient): StoryClient {
   if (!walletClient.account) {
     throw new Error('Wallet client must have an account');
   }
 
-  const config: StoryConfig = {
-    chainId: aeneid.id as SupportedChainIds,
-    transport: http(process.env.REACT_APP_AENEID_RPC_URL || 'https://aeneid.storyrpc.io'),
-    account: walletClient.account,
-  };
-  
   try {
-    return StoryClient.newClient(config);
+    // Use newClientUseWallet which accepts the wallet client directly
+    // This properly handles the account from wagmi wallet client
+    return StoryClient.newClientUseWallet({
+      chainId: aeneid.id as SupportedChainIds,
+      transport: http(process.env.REACT_APP_AENEID_RPC_URL || 'https://aeneid.storyrpc.io'),
+      wallet: walletClient as any, // Cast to SimpleWalletClient (compatible types)
+    });
   } catch (error) {
     console.error('Error creating Story client:', error);
     throw new Error('Failed to initialize Story Protocol client');
