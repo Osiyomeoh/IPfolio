@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, TrendingUp, Shield, Zap, Music, Wand2 } from 'lucide-react';
 import { useAccount, useWalletClient } from 'wagmi';
-import { BrowserProvider } from 'ethers';
+import { BrowserProvider, ethers } from 'ethers';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MusicBundleCreator from './components/MusicBundleCreator';
@@ -42,8 +42,6 @@ function App() {
   // Load bundles from blockchain using stored addresses
   useEffect(() => {
     const loadBundlesFromBlockchain = async () => {
-      if (!walletClient || !isConnected) return;
-
       try {
         // Get stored bundle addresses (we only store addresses, not full data)
         const storedAddresses = localStorage.getItem('ipfolio_bundle_addresses');
@@ -59,13 +57,17 @@ function App() {
         }
 
         setIsLoadingBundles(true);
-        const provider = new BrowserProvider(walletClient as any);
+        
+        // Use public RPC provider to read from blockchain (works without wallet connection)
+        const publicProvider = new ethers.JsonRpcProvider(
+          process.env.REACT_APP_AENEID_RPC_URL || 'https://aeneid.storyrpc.io'
+        );
         
         // Load all bundle data from blockchain
         const bundles = await Promise.all(
           addresses.map(async (address) => {
             try {
-              const bundleInfo = await getBundleInfo(provider, address as `0x${string}`);
+              const bundleInfo = await getBundleInfo(publicProvider, address as `0x${string}`);
               
               // Get IP assets from contract
               const ipAssets = bundleInfo.ipAssets;
@@ -101,8 +103,10 @@ function App() {
           })
         );
 
-        setCreatedBundles(bundles);
-        console.log('📦 Loaded bundles from blockchain:', bundles.length);
+        // Filter out failed bundles
+        const validBundles = bundles.filter(b => b.name !== 'Unknown Bundle' || b.tracks.length > 0);
+        setCreatedBundles(validBundles);
+        console.log('📦 Loaded bundles from blockchain:', validBundles.length);
       } catch (error) {
         console.error('Error loading bundles from blockchain:', error);
         setCreatedBundles([]);
@@ -112,7 +116,7 @@ function App() {
     };
 
     loadBundlesFromBlockchain();
-  }, [isConnected, walletClient]);
+  }, []); // Load on mount, not dependent on wallet connection
 
   const handleBundleCreate = async (bundle: {
     name: string;
