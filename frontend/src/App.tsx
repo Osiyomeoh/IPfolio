@@ -69,12 +69,16 @@ function App() {
     }
   }, [createdBundles]);
 
-  // Load bundle data from blockchain if we have addresses
+  // Load bundle data from blockchain if we have addresses (only once on mount/connect)
   useEffect(() => {
     const loadBundleDataFromChain = async () => {
-      if (!walletClient || createdBundles.length === 0) return;
+      if (!walletClient || !isConnected) return;
 
-      const bundlesWithAddresses = createdBundles.filter(b => b.address);
+      const stored = localStorage.getItem('ipfolio_bundles');
+      if (!stored) return;
+
+      const bundles = JSON.parse(stored) as Bundle[];
+      const bundlesWithAddresses = bundles.filter(b => b.address);
       if (bundlesWithAddresses.length === 0) return;
 
       setIsLoadingBundles(true);
@@ -83,7 +87,7 @@ function App() {
         
         // Update bundle data from blockchain
         const updatedBundles = await Promise.all(
-          bundlesWithAddresses.map(async (bundle) => {
+          bundles.map(async (bundle) => {
             if (!bundle.address) return bundle;
             
             try {
@@ -109,10 +113,8 @@ function App() {
       }
     };
 
-    if (isConnected && walletClient) {
-      loadBundleDataFromChain();
-    }
-  }, [isConnected, walletClient, createdBundles.length]);
+    loadBundleDataFromChain();
+  }, [isConnected, walletClient]); // Only run when connection changes, not on bundle changes
 
   const handleBundleCreate = async (bundle: {
     name: string;
