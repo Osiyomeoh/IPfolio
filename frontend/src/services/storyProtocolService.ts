@@ -24,17 +24,20 @@ export interface IPAssetRegistrationResult {
 
 /**
  * Initialize Story Protocol client
+ * 
+ * Note: This function is not currently used as we're using demo mode.
+ * In production, you'd need to properly configure the Story SDK with viem.
  */
 export function createStoryClient(signer: Signer): StoryClient {
-  const config: StoryConfig = {
-    chainId: aeneid.id,
-    transport: 'http',
+  // Note: Story SDK requires viem account, not ethers signer
+  // For now, we're using demo mode, so this function is not actively used
+  // In production, you'd need to convert ethers signer to viem account
+  
+  const config = {
+    chainId: aeneid.id as any,
+    transport: 'http' as any,
     account: signer as any, // Story SDK expects viem account, but we'll adapt
-  };
-
-  // Note: Story SDK requires specific configuration
-  // For now, we'll use a simplified approach that works with ethers
-  // In production, you'd need to properly convert ethers signer to viem account
+  } as StoryConfig;
   
   try {
     return StoryClient.newClient(config);
@@ -56,49 +59,60 @@ export async function registerIPAsset(
   params: IPAssetRegistrationParams
 ): Promise<IPAssetRegistrationResult> {
   try {
-    // For hackathon demo, we'll simulate the registration
-    // In production, this would use the real Story SDK:
-    
+    // ⚠️ CURRENTLY IN DEMO MODE - NOT ON BLOCKCHAIN ⚠️
+    // 
+    // This function currently SIMULATES registration for hackathon demo.
+    // In production, this MUST use real Story Protocol SDK for blockchain registration:
+    //
+    // REAL BLOCKCHAIN REGISTRATION (Production):
     // const storyClient = createStoryClient(signer);
     // const response = await storyClient.ipAsset.register({
     //   name: params.name,
-    //   type: 'STORY', // or 'CHARACTER', 'STORY', etc.
+    //   type: 'STORY',
     //   metadata: {
     //     description: params.description || '',
+    //     ipfsHash: params.metadata.ipfsHash,
     //     ...params.metadata,
     //   },
     // });
     // 
+    // This would:
+    // - Create real blockchain transaction
+    // - Pay gas fees
+    // - Return real IP asset address
+    // - Return real transaction hash
+    // - Be verifiable on block explorer
+    //
     // return {
     //   ipAssetId: response.ipAssetId,
     //   ipAssetAddress: response.ipAssetAddress,
     //   txHash: response.txHash,
     // };
 
-    // Demo: Simulate registration with realistic delay
-    console.log('📝 Registering IP asset on Story Protocol...', params);
+    // DEMO MODE: Simulated registration (NOT on blockchain)
+    console.log('📝 [DEMO] Simulating IP asset registration (NOT on blockchain)...', params);
     
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Generate a realistic-looking IP asset address
-    // In production, this comes from Story Protocol
+    // Generate mock data (NOT real blockchain addresses)
+    // In production, these come from Story Protocol blockchain transaction
     const ipAssetAddress = `0x${Array.from({ length: 40 }, () => 
       Math.floor(Math.random() * 16).toString(16)
     ).join('')}`;
 
-    // Generate a mock IP asset ID (Story Protocol format)
     const ipAssetId = `ip_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
-    // Generate a mock transaction hash
+    // Mock transaction hash (NOT real blockchain transaction)
     const txHash = `0x${Array.from({ length: 64 }, () => 
       Math.floor(Math.random() * 16).toString(16)
     ).join('')}`;
 
-    console.log('✅ IP asset registered:', {
+    console.log('✅ [DEMO] IP asset registration simulated (NOT on blockchain):', {
       ipAssetId,
       ipAssetAddress,
       txHash,
+      note: 'This is mock data. In production, this would be a real blockchain transaction.',
     });
 
     return {
@@ -173,8 +187,9 @@ export async function attachLicenseTerms(
     // });
     // return response.txHash;
 
-    // Demo: Simulate license attachment
-    console.log('📄 Attaching license terms to IP asset...', {
+    // ⚠️ DEMO MODE: Simulated license attachment (NOT on blockchain)
+    // In production, this would be a real blockchain transaction via Story Protocol
+    console.log('📄 [DEMO] Simulating license terms attachment (NOT on blockchain)...', {
       ipAssetAddress,
       licenseTerms,
     });
