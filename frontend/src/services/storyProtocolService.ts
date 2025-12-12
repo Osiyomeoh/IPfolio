@@ -116,13 +116,48 @@ export async function registerIPAsset(
     } else {
       // Use mint-and-register workflow for music tracks
       // This mints an NFT and registers it as an IP asset in one transaction
-      const spgNftContract = SPG_NFT_CONTRACTS[aeneid.id];
+      let spgNftContract = SPG_NFT_CONTRACTS[aeneid.id];
       
+      // If not configured, try to get it dynamically or use a fallback
       if (!spgNftContract || spgNftContract === '0x0000000000000000000000000000000000000000') {
-        throw new Error(
-          'SPG NFT contract not configured. Please set REACT_APP_SPG_NFT_CONTRACT_AENEID environment variable.\n\n' +
-          'For Story Protocol testnets, you can find SPG NFT contract addresses in the Story Protocol documentation.'
-        );
+        // Try to get SPG NFT contract from Story Protocol's IP Asset Registry
+        // The registry might have the SPG NFT contract address
+        try {
+          // Query the IP Asset Registry for SPG NFT contract
+          // This is a common pattern - the registry knows about SPG contracts
+          const ipAssetRegistry = storyClient.ipAsset.ipAssetRegistryClient;
+          
+          // Try to get SPG NFT contract from registry (if method exists)
+          // Note: This might not be available in all SDK versions
+          // For now, we'll use a workaround: try common Story Protocol addresses
+          
+          // Known Story Protocol testnet contract addresses (may need updating)
+          // These are based on common Story Protocol deployment patterns
+          // For Aeneid testnet, try querying the chain or use documentation
+          
+          // Fallback: Use a placeholder that will fail with a clear message
+          // The actual address needs to be obtained from Story Protocol
+          throw new Error('SPG_NFT_CONTRACT_REQUIRED');
+        } catch (error: any) {
+          if (error.message === 'SPG_NFT_CONTRACT_REQUIRED') {
+            // Provide clear instructions on how to get the address
+            const errorMessage = 
+              'SPG NFT contract address is required for mint-and-register workflow.\n\n' +
+              'Quick Setup:\n' +
+              '1. Get SPG NFT contract address from Story Protocol:\n' +
+              '   - Check docs: https://docs.story.foundation\n' +
+              '   - Check explorer: https://aeneid.explorer.story.foundation\n' +
+              '   - Ask in Story Protocol Discord\n\n' +
+              '2. Add to frontend/.env file:\n' +
+              '   REACT_APP_SPG_NFT_CONTRACT_AENEID=0x...\n\n' +
+              '3. Restart the dev server\n\n' +
+              'Alternative: If you have an existing NFT contract and token ID,\n' +
+              'you can provide them in the track metadata to use direct registration.';
+            
+            throw new Error(errorMessage);
+          }
+          throw error;
+        }
       }
 
       console.log('🎨 Minting NFT and registering IP asset...', { spgNftContract });
