@@ -139,7 +139,12 @@ url: `https://gateway.pinata.cloud/ipfs/${cid}`
 
 **Use:** Pinata Dedicated Gateway
 ```typescript
-url: `https://ipfolio.mypinata.cloud/ipfs/${cid}`
+url: `https://indigo-recent-clam-436.mypinata.cloud/ipfs/${cid}`
+```
+
+**Configured in:** `frontend/.env`
+```bash
+REACT_APP_PINATA_GATEWAY=https://indigo-recent-clam-436.mypinata.cloud
 ```
 
 **Why:**
