@@ -87,13 +87,23 @@ export async function registerIPAsset(
     
     if (nftContract && tokenId !== undefined) {
       // Register existing NFT as IP asset
+      // ipMetadata must match IpMetadataForWorkflow type:
+      // - ipMetadataURI: URI of the IP metadata (e.g., IPFS URL)
+      // - ipMetadataHash: Hash of the IP metadata
+      // - nftMetadataURI: URI of the NFT metadata (e.g., IPFS URL)
+      // - nftMetadataHash: Hash of the NFT metadata
+      const ipfsHash = params.metadata?.ipfsHash || '';
+      const ipfsUrl = params.metadata?.ipfsUrl || `ipfs://${ipfsHash}`;
+      
+      // Use IPFS metadata if available, otherwise construct from params
       response = await storyClient.ipAsset.register({
         nftContract,
         tokenId,
         ipMetadata: {
-          name: params.name,
-          description: params.description || '',
-          ...params.metadata,
+          ipMetadataURI: ipfsUrl,
+          ipMetadataHash: ipfsHash as `0x${string}` || '0x0' as `0x${string}`,
+          nftMetadataURI: ipfsUrl, // Use same metadata for NFT
+          nftMetadataHash: ipfsHash as `0x${string}` || '0x0' as `0x${string}`,
         },
       });
     } else {
