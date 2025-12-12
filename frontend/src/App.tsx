@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, TrendingUp, Shield, Zap, Music, Wand2 } from 'lucide-react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { BrowserProvider } from 'ethers';
@@ -13,7 +13,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import HowItWorks from './pages/HowItWorks';
 import { SigmaMusicTrack } from './data/sigmaMusicIPs';
-import { deployBundleToken, calculateRoyaltyShares, type BundleConfig } from './services/contractService';
+import { deployBundleToken, calculateRoyaltyShares, getBundleInfo, type BundleConfig } from './services/contractService';
 import { toast } from './utils/toast';
 import { aeneid } from './config/chains';
 
@@ -25,16 +25,94 @@ function App() {
   const [currentView, setCurrentView] = useState<View>('home');
   const [, setIsVerified] = useState(false); // World ID verification status (optional)
   const [isDeploying, setIsDeploying] = useState(false);
-  const [createdBundles, setCreatedBundles] = useState<Array<{
+  type Bundle = {
     name: string;
     symbol: string;
     description: string;
     tracks: SigmaMusicTrack[];
     address?: string;
     txHash?: string;
-  }>>([]);
+  };
+
+  const [createdBundles, setCreatedBundles] = useState<Bundle[]>([]);
   const [registeredTracks, setRegisteredTracks] = useState<SigmaMusicTrack[]>([]);
   const [selectedBundleForTrading, setSelectedBundleForTrading] = useState<string | null>(null);
+  const [isLoadingBundles, setIsLoadingBundles] = useState(false);
+
+  // Load bundles from localStorage on mount
+  useEffect(() => {
+    const loadBundlesFromStorage = () => {
+      try {
+        const stored = localStorage.getItem('ipfolio_bundles');
+        if (stored) {
+          const bundles = JSON.parse(stored) as Bundle[];
+          setCreatedBundles(bundles);
+          console.log('📦 Loaded bundles from localStorage:', bundles.length);
+        }
+      } catch (error) {
+        console.error('Error loading bundles from localStorage:', error);
+      }
+    };
+
+    loadBundlesFromStorage();
+  }, []);
+
+  // Save bundles to localStorage whenever they change
+  useEffect(() => {
+    if (createdBundles.length > 0) {
+      try {
+        localStorage.setItem('ipfolio_bundles', JSON.stringify(createdBundles));
+        console.log('💾 Saved bundles to localStorage:', createdBundles.length);
+      } catch (error) {
+        console.error('Error saving bundles to localStorage:', error);
+      }
+    }
+  }, [createdBundles]);
+
+  // Load bundle data from blockchain if we have addresses
+  useEffect(() => {
+    const loadBundleDataFromChain = async () => {
+      if (!walletClient || createdBundles.length === 0) return;
+
+      const bundlesWithAddresses = createdBundles.filter(b => b.address);
+      if (bundlesWithAddresses.length === 0) return;
+
+      setIsLoadingBundles(true);
+      try {
+        const provider = new BrowserProvider(walletClient as any);
+        
+        // Update bundle data from blockchain
+        const updatedBundles = await Promise.all(
+          bundlesWithAddresses.map(async (bundle) => {
+            if (!bundle.address) return bundle;
+            
+            try {
+              const bundleInfo = await getBundleInfo(provider, bundle.address as `0x${string}`);
+              return {
+                ...bundle,
+                name: bundleInfo.name,
+                symbol: bundleInfo.symbol,
+                description: bundleInfo.description,
+              };
+            } catch (error) {
+              console.error(`Error loading bundle ${bundle.address}:`, error);
+              return bundle; // Return original if fetch fails
+            }
+          })
+        );
+
+        setCreatedBundles(updatedBundles);
+      } catch (error) {
+        console.error('Error loading bundle data from chain:', error);
+      } finally {
+        setIsLoadingBundles(false);
+      }
+    };
+
+    if (isConnected && walletClient) {
+      loadBundleDataFromChain();
+    }
+  }, [isConnected, walletClient, createdBundles.length]);
 
   const handleBundleCreate = async (bundle: {
     name: string;
@@ -82,7 +160,9 @@ function App() {
         txHash: result.txHash,
       };
 
-      setCreatedBundles([...createdBundles, newBundle]);
+      const updatedBundles = [...createdBundles, newBundle];
+      setCreatedBundles(updatedBundles);
+      // Save to localStorage (handled by useEffect)
 
       // Show success message with contract address
       toast.success(
