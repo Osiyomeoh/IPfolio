@@ -36,16 +36,17 @@ This document explains **exactly** how a real user would add their music and cre
 1. User selects MP3/WAV/FLAC file
 2. File validated (type, size)
 3. File preview shown (audio player)
-4. File automatically uploaded to IPFS
+4. File automatically uploaded to Pinata IPFS
 5. Progress bar shows upload status
 6. IPFS CID (Content Identifier) received
-7. IPFS URL generated (e.g., `https://Qm...ipfs.w3s.link`)
+7. IPFS URL generated (e.g., `https://gateway.pinata.cloud/ipfs/Qm...`)
 
 **Technical Details:**
-- File stored on IPFS (decentralized storage)
+- File stored on IPFS via Pinata (decentralized storage)
 - Permanent, content-addressed storage
 - CID can be used to retrieve file forever
-- No single point of failure
+- Pinata ensures file is pinned and accessible
+- Gateway: `https://gateway.pinata.cloud/ipfs/{cid}`
 
 ---
 
@@ -329,9 +330,9 @@ Trading
 ### User: "Alice the Artist"
 
 **Step 1:** Alice uploads "Midnight Dreams.mp3" (5MB)
-- ✅ File uploaded to IPFS
+- ✅ File uploaded to Pinata IPFS
 - ✅ CID: `QmABC123...`
-- ✅ URL: `https://QmABC123.ipfs.w3s.link`
+- ✅ URL: `https://gateway.pinata.cloud/ipfs/QmABC123...`
 
 **Step 2:** Alice uploads artwork "cover.jpg"
 - ✅ Image uploaded to IPFS

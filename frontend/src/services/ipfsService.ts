@@ -2,12 +2,12 @@
  * IPFS Service
  * 
  * Handles uploading files (music, artwork, metadata) to IPFS.
- * Uses web3.storage for easy IPFS integration.
+ * Uses Pinata for reliable IPFS pinning and storage.
  * 
- * In production, you would:
- * 1. Get API token from web3.storage
- * 2. Set REACT_APP_WEB3_STORAGE_TOKEN in .env
- * 3. Use real uploads instead of mock
+ * Setup:
+ * 1. Get API key from https://pinata.cloud
+ * 2. Set REACT_APP_PINATA_JWT in .env
+ * 3. Files will be pinned to IPFS via Pinata
  */
 
 export interface IPFSUploadResult {
@@ -21,38 +21,90 @@ export interface IPFSUploadResult {
  * @param file - File to upload (audio, image, etc.)
  * @returns IPFS CID and gateway URL
  */
+/**
+ * Upload a file to IPFS using Pinata
+ * 
+ * @param file - File to upload (audio, image, etc.)
+ * @returns IPFS CID and gateway URL
+ */
 export async function uploadFileToIPFS(file: File): Promise<IPFSUploadResult> {
   try {
-    // In production, use web3.storage:
-    // const { Web3Storage } = await import('web3.storage');
-    // const client = new Web3Storage({ token: process.env.REACT_APP_WEB3_STORAGE_TOKEN! });
-    // const cid = await client.put([file]);
-    // return { cid, url: `https://${cid}.ipfs.w3s.link` };
+    const pinataJWT = process.env.REACT_APP_PINATA_JWT;
 
-    // Demo: Simulate IPFS upload
-    console.log('📤 Uploading file to IPFS...', {
+    if (!pinataJWT) {
+      console.warn('⚠️ Pinata JWT not found. Using demo mode.');
+      // Demo mode: Simulate IPFS upload
+      console.log('📤 [DEMO] Uploading file to IPFS...', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const mockCID = `Qm${Array.from({ length: 44 }, () => 
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[
+          Math.floor(Math.random() * 62)
+        ]
+      ).join('')}`;
+
+      return {
+        cid: mockCID,
+        url: `https://gateway.pinata.cloud/ipfs/${mockCID}`,
+      };
+    }
+
+    // Real Pinata upload
+    console.log('📤 Uploading file to Pinata IPFS...', {
       name: file.name,
       size: file.size,
       type: file.type,
     });
 
-    // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const formData = new FormData();
+    formData.append('file', file);
 
-    // Generate realistic-looking IPFS CID (Qm... format)
-    const mockCID = `Qm${Array.from({ length: 44 }, () => 
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[
-        Math.floor(Math.random() * 62)
-      ]
-    ).join('')}`;
+    // Add metadata
+    const metadata = JSON.stringify({
+      name: file.name,
+      keyvalues: {
+        type: file.type,
+        uploadedAt: new Date().toISOString(),
+      },
+    });
+    formData.append('pinataMetadata', metadata);
 
-    const result: IPFSUploadResult = {
-      cid: mockCID,
-      url: `https://${mockCID}.ipfs.w3s.link`,
+    // Add options
+    const options = JSON.stringify({
+      cidVersion: 0,
+    });
+    formData.append('pinataOptions', options);
+
+    const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${pinataJWT}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.details || `Pinata API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const cid = data.IpfsHash;
+
+    console.log('✅ File uploaded to Pinata IPFS:', {
+      cid,
+      name: file.name,
+    });
+
+    return {
+      cid,
+      url: `https://gateway.pinata.cloud/ipfs/${cid}`,
     };
-
-    console.log('✅ File uploaded to IPFS:', result);
-    return result;
   } catch (error: any) {
     console.error('❌ Error uploading to IPFS:', error);
     throw new Error(`Failed to upload file to IPFS: ${error.message || 'Unknown error'}`);
@@ -65,31 +117,84 @@ export async function uploadFileToIPFS(file: File): Promise<IPFSUploadResult> {
  * @param metadata - Metadata object to upload
  * @returns IPFS CID and gateway URL
  */
+/**
+ * Upload metadata JSON to IPFS using Pinata
+ * 
+ * @param metadata - Metadata object to upload
+ * @returns IPFS CID and gateway URL
+ */
 export async function uploadMetadataToIPFS(metadata: Record<string, any>): Promise<IPFSUploadResult> {
   try {
-    // In production:
-    // const jsonBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
-    // const jsonFile = new File([jsonBlob], 'metadata.json', { type: 'application/json' });
-    // return await uploadFileToIPFS(jsonFile);
+    const pinataJWT = process.env.REACT_APP_PINATA_JWT;
 
-    // Demo: Simulate metadata upload
-    console.log('📤 Uploading metadata to IPFS...', metadata);
+    if (!pinataJWT) {
+      console.warn('⚠️ Pinata JWT not found. Using demo mode.');
+      // Demo mode: Simulate metadata upload
+      console.log('📤 [DEMO] Uploading metadata to IPFS...', metadata);
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      const mockCID = `Qm${Array.from({ length: 44 }, () => 
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[
+          Math.floor(Math.random() * 62)
+        ]
+      ).join('')}`;
 
-    const mockCID = `Qm${Array.from({ length: 44 }, () => 
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[
-        Math.floor(Math.random() * 62)
-      ]
-    ).join('')}`;
+      return {
+        cid: mockCID,
+        url: `https://gateway.pinata.cloud/ipfs/${mockCID}`,
+      };
+    }
 
-    const result: IPFSUploadResult = {
-      cid: mockCID,
-      url: `https://${mockCID}.ipfs.w3s.link/metadata.json`,
+    // Real Pinata upload
+    console.log('📤 Uploading metadata to Pinata IPFS...', metadata);
+
+    const jsonBlob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+    const jsonFile = new File([jsonBlob], 'metadata.json', { type: 'application/json' });
+
+    const formData = new FormData();
+    formData.append('file', jsonFile);
+
+    // Add metadata
+    const pinataMetadata = JSON.stringify({
+      name: 'metadata.json',
+      keyvalues: {
+        type: 'metadata',
+        uploadedAt: new Date().toISOString(),
+      },
+    });
+    formData.append('pinataMetadata', pinataMetadata);
+
+    // Add options
+    const options = JSON.stringify({
+      cidVersion: 0,
+    });
+    formData.append('pinataOptions', options);
+
+    const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${pinataJWT}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.details || `Pinata API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const cid = data.IpfsHash;
+
+    console.log('✅ Metadata uploaded to Pinata IPFS:', {
+      cid,
+      metadata,
+    });
+
+    return {
+      cid,
+      url: `https://gateway.pinata.cloud/ipfs/${cid}`,
     };
-
-    console.log('✅ Metadata uploaded to IPFS:', result);
-    return result;
   } catch (error: any) {
     console.error('❌ Error uploading metadata to IPFS:', error);
     throw new Error(`Failed to upload metadata to IPFS: ${error.message || 'Unknown error'}`);
