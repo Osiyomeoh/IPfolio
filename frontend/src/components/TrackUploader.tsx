@@ -102,19 +102,9 @@ export default function TrackUploader({ onTrackRegistered }: TrackUploaderProps)
         },
       });
 
-      // Step 3: Attach license terms (PIL - Programmable IP License) (REAL BLOCKCHAIN)
-      console.log('📄 Attaching license terms on blockchain...');
-      const royaltyBasisPoints = Math.floor(parseFloat(formData.royaltyRate) * 100); // Convert % to basis points
-      
-      await attachLicenseTerms(walletClient, registrationResult.ipAssetAddress, {
-        commercialUse: true,
-        commercialAttribution: true,
-        commercialRevShare: royaltyBasisPoints, // e.g., 500 = 5%
-        derivativesAllowed: true,
-        derivativesAttribution: true,
-        derivativesApproval: false,
-        derivativesReciprocal: false,
-      });
+      // Step 3: License terms are already attached during registration
+      // No need to attach separately - they were included in registerIpAsset call
+      console.log('✅ License terms attached during registration');
 
       // Create track object for bundle creator
       const registeredTrack = {
