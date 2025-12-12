@@ -7,8 +7,15 @@
  * Setup:
  * 1. Get API key from https://pinata.cloud
  * 2. Set REACT_APP_PINATA_JWT in .env
- * 3. Files will be pinned to IPFS via Pinata
+ * 3. (Optional) Set REACT_APP_PINATA_GATEWAY for custom gateway
+ * 4. Files will be pinned to IPFS via Pinata
  */
+
+// Gateway configuration
+// Default: Pinata public gateway
+// For production: Use dedicated gateway (requires Pinata Pro)
+const DEFAULT_GATEWAY = 'https://gateway.pinata.cloud';
+const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY || DEFAULT_GATEWAY;
 
 export interface IPFSUploadResult {
   cid: string; // Content Identifier (IPFS hash)
@@ -103,7 +110,7 @@ export async function uploadFileToIPFS(file: File): Promise<IPFSUploadResult> {
 
     return {
       cid,
-      url: `https://gateway.pinata.cloud/ipfs/${cid}`,
+      url: `${PINATA_GATEWAY}/ipfs/${cid}`,
     };
   } catch (error: any) {
     console.error('❌ Error uploading to IPFS:', error);
@@ -141,7 +148,7 @@ export async function uploadMetadataToIPFS(metadata: Record<string, any>): Promi
 
       return {
         cid: mockCID,
-        url: `https://gateway.pinata.cloud/ipfs/${mockCID}`,
+        url: `${PINATA_GATEWAY}/ipfs/${mockCID}`,
       };
     }
 
@@ -193,7 +200,7 @@ export async function uploadMetadataToIPFS(metadata: Record<string, any>): Promi
 
     return {
       cid,
-      url: `https://gateway.pinata.cloud/ipfs/${cid}`,
+      url: `${PINATA_GATEWAY}/ipfs/${cid}`,
     };
   } catch (error: any) {
     console.error('❌ Error uploading metadata to IPFS:', error);
