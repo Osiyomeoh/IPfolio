@@ -15,3 +15,29 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Toast Notification Dark Mode Support */
+.dark .Toastify__toast {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .Toastify__toast--success {
+  background-color: #065f46 !important;
+  color: #d1fae5 !important;
+}
+
+.dark .Toastify__toast--error {
+  background-color: #7f1d1d !important;
+  color: #fee2e2 !important;
+}
+
+.dark .Toastify__toast--info {
+  background-color: #1e3a8a !important;
+  color: #dbeafe !important;
+}
+
+.dark .Toastify__toast--warning {
+  background-color: #78350f !important;
+  color: #fef3c7 !important;
+}

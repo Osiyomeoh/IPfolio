@@ -2,9 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ToastContainer } from 'react-toastify';
 import { config } from './config/wagmi';
 import { ThemeProvider } from './contexts/ThemeContext';
 import './index.css';
+import 'react-toastify/dist/ReactToastify.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
@@ -19,6 +21,19 @@ root.render(
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <App />
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+            className="dark:!bg-gray-800"
+          />
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>

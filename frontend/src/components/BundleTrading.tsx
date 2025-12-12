@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, ArrowRight, Loader } from 'lucide-react';
+import { TrendingUp, TrendingDown, Loader } from 'lucide-react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { BrowserProvider } from 'ethers';
 import { ethers } from 'ethers';
 import { BUNDLE_TOKEN_ABI } from '../services/contractService';
 import type { Address } from 'viem';
+import { toast } from '../utils/toast';
 
 /**
  * Bundle Trading Component
@@ -29,12 +30,13 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
   const [totalSupply, setTotalSupply] = useState<string>('0');
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
-  const [price, setPrice] = useState('0.01'); // Price per token in IP/ETH
+  const [price] = useState('0.01'); // Price per token in IP/ETH
 
   useEffect(() => {
     if (isConnected && bundleAddress && address) {
       loadBundleData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, bundleAddress, address]);
 
   const loadBundleData = async () => {
@@ -76,7 +78,10 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
         // For buying, we need to find a seller or use a simple transfer
         // In production, this would use a DEX or order book
         // For demo: We'll simulate buying from the contract owner
-        alert(`Buying ${amount} ${bundleSymbol} tokens...\n\nIn production, this would:\n1. Find available sellers\n2. Execute trade via DEX/order book\n3. Transfer tokens to buyer\n\nFor demo, you can ask the bundle creator to transfer tokens to you.`);
+        toast.info(
+          `Buying ${amount} ${bundleSymbol} tokens...\n\nIn production, this would:\n1. Find available sellers\n2. Execute trade via DEX/order book\n3. Transfer tokens to buyer\n\nFor demo, you can ask the bundle creator to transfer tokens to you.`,
+          { duration: 8000 }
+        );
       } else {
         // Selling: Transfer tokens to a buyer
         // In production, this would list on an order book or DEX
@@ -93,14 +98,17 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
         const amountWei = ethers.parseEther(amount);
         const tx = await contract.transfer(demoBuyerAddress, amountWei);
         
-        alert(`Selling ${amount} ${bundleSymbol} tokens...\n\nTransaction: ${tx.hash}\n\nIn production, this would execute a trade with a real buyer.`);
+        toast.success(
+          `Selling ${amount} ${bundleSymbol} tokens...\n\nTransaction: ${tx.hash}\n\nIn production, this would execute a trade with a real buyer.`,
+          { duration: 8000 }
+        );
         
         await tx.wait();
         await loadBundleData(); // Refresh balance
       }
     } catch (error: any) {
       console.error('Trading error:', error);
-      alert(`Trading failed: ${error.message || 'Unknown error'}`);
+      toast.error(`Trading failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }

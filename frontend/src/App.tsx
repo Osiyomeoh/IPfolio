@@ -14,6 +14,7 @@ import TermsOfService from './pages/TermsOfService';
 import HowItWorks from './pages/HowItWorks';
 import { SigmaMusicTrack } from './data/sigmaMusicIPs';
 import { deployBundleToken, calculateRoyaltyShares, type BundleConfig } from './services/contractService';
+import { toast } from './utils/toast';
 import { aeneid } from './config/chains';
 
 type View = 'home' | 'create' | 'marketplace' | 'privacy' | 'terms' | 'how-it-works';
@@ -22,7 +23,7 @@ function App() {
   const { isConnected, address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const [currentView, setCurrentView] = useState<View>('home');
-  const [isVerified, setIsVerified] = useState(false); // World ID verification status (optional)
+  const [, setIsVerified] = useState(false); // World ID verification status (optional)
   const [isDeploying, setIsDeploying] = useState(false);
   const [createdBundles, setCreatedBundles] = useState<Array<{
     name: string;
@@ -42,7 +43,7 @@ function App() {
     tracks: SigmaMusicTrack[];
   }) => {
     if (!walletClient || !address) {
-      alert('Please connect your wallet first');
+      toast.error('Please connect your wallet first');
       return;
     }
 
@@ -84,17 +85,18 @@ function App() {
       setCreatedBundles([...createdBundles, newBundle]);
 
       // Show success message with contract address
-      alert(
+      toast.success(
         `Bundle "${bundle.name}" deployed successfully! 🎉\n\n` +
         `Contract Address: ${result.address}\n` +
         `Transaction: ${result.txHash}\n\n` +
-        `View on explorer: https://aeneid.explorer.story.foundation/address/${result.address}`
+        `View on explorer: ${aeneid.blockExplorers?.default.url}/address/${result.address}`,
+        { duration: 8000 }
       );
 
       setCurrentView('marketplace');
     } catch (error: any) {
       console.error('Error deploying bundle:', error);
-      alert(`Failed to deploy bundle: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to deploy bundle: ${error.message || 'Unknown error'}`);
     } finally {
       setIsDeploying(false);
     }
@@ -106,7 +108,10 @@ function App() {
     description: string;
     tracks: SigmaMusicTrack[];
   }) => {
-    alert(`AI Suggestion:\n\nName: ${suggestion.name}\nSymbol: ${suggestion.symbol}\nTracks: ${suggestion.tracks.length}\n\nUse this in the bundle creator below!`);
+    toast.info(
+      `AI Suggestion Generated!\n\nName: ${suggestion.name}\nSymbol: ${suggestion.symbol}\nTracks: ${suggestion.tracks.length}\n\nUse this in the bundle creator below!`,
+      { duration: 7000 }
+    );
   };
 
   return (
@@ -248,7 +253,7 @@ function App() {
                 <TrackUploader 
                   onTrackRegistered={(track) => {
                     setRegisteredTracks([...registeredTracks, track]);
-                    alert(`Track "${track.trackName}" registered! You can now use it in bundles.`);
+                    toast.success(`Track "${track.trackName}" registered! You can now use it in bundles.`);
                   }}
                 />
 
@@ -357,7 +362,7 @@ function App() {
                             {selectedBundleForTrading === bundle.address && bundle.address && (
                               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                                 <BundleTrading
-                                  bundleAddress={bundle.address}
+                                  bundleAddress={bundle.address as `0x${string}`}
                                   bundleSymbol={bundle.symbol}
                                   bundleName={bundle.name}
                                 />

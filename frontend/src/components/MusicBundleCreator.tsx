@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Music, Play, Plus, CheckCircle, Sparkles, Upload } from 'lucide-react';
 import { SIGMA_MUSIC_TRACKS, SigmaMusicTrack, MUSIC_BUNDLE_TEMPLATES } from '../data/sigmaMusicIPs';
+import { toast } from '../utils/toast';
 
 interface MusicBundleCreatorProps {
   onBundleCreate?: (bundle: {
@@ -51,7 +52,7 @@ export default function MusicBundleCreator({ onBundleCreate, registeredTracks = 
 
   const handleCreate = () => {
     if (!bundleName || !bundleSymbol || selectedTracks.length === 0) {
-      alert('Please fill in bundle name, symbol, and select at least one track');
+      toast.warning('Please fill in bundle name, symbol, and select at least one track');
       return;
     }
 

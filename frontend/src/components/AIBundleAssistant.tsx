@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, Wand2, Loader, CheckCircle } from 'lucide-react';
 import { SIGMA_MUSIC_TRACKS, SigmaMusicTrack } from '../data/sigmaMusicIPs';
+import { toast } from '../utils/toast';
 
 /**
  * AI Bundle Assistant Component
@@ -31,11 +32,11 @@ export default function AIBundleAssistant({ onSuggest }: AIBundleAssistantProps)
     tracks: SigmaMusicTrack[];
   } | null>(null);
 
-  const generateSuggestion = async () => {
-    if (!prompt.trim()) {
-      alert('Please describe your bundle idea');
-      return;
-    }
+      const generateSuggestion = async () => {
+        if (!prompt.trim()) {
+          toast.warning('Please describe your bundle idea');
+          return;
+        }
 
     setIsGenerating(true);
     setSuggestion(null);
@@ -74,10 +75,10 @@ export default function AIBundleAssistant({ onSuggest }: AIBundleAssistantProps)
       if (onSuggest) {
         onSuggest(result);
       }
-    } catch (error) {
-      console.error('AI generation failed:', error);
-      alert('Failed to generate suggestion. Please try again.');
-    } finally {
+        } catch (error) {
+          console.error('AI generation failed:', error);
+          toast.error('Failed to generate suggestion. Please try again.');
+        } finally {
       setIsGenerating(false);
     }
   };

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Upload, Music, Loader, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
+import { Upload, Music, Loader } from 'lucide-react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { BrowserProvider } from 'ethers';
 import { registerIPAsset, attachLicenseTerms } from '../services/storyProtocolService';
 import { uploadMetadataToIPFS } from '../services/ipfsService';
 import { aeneid } from '../config/chains';
 import MusicFileUpload from './MusicFileUpload';
+import { toast } from '../utils/toast';
 
 /**
  * Track Uploader Component
@@ -49,17 +50,17 @@ export default function TrackUploader({ onTrackRegistered }: TrackUploaderProps)
 
   const handleRegister = async () => {
     if (!isConnected || !walletClient) {
-      alert('Please connect your wallet first');
+      toast.error('Please connect your wallet first');
       return;
     }
 
     if (!formData.trackName || !formData.artist) {
-      alert('Please fill in track name and artist');
+      toast.warning('Please fill in track name and artist');
       return;
     }
 
     if (!audioFile || !audioIPFSCID) {
-      alert('Please upload your music file first');
+      toast.warning('Please upload your music file first');
       return;
     }
 
@@ -151,18 +152,19 @@ export default function TrackUploader({ onTrackRegistered }: TrackUploaderProps)
       setArtworkIPFSURL(null);
 
       // Show success message with transaction details
-      alert(
+      toast.success(
         `Track "${trackName}" registered successfully! 🎉\n\n` +
         `IP Asset Address: ${registrationResult.ipAssetAddress}\n` +
         `Transaction Hash: ${registrationResult.txHash}\n` +
         `Audio IPFS: ${audioIPFSCID}\n` +
         `Metadata IPFS: ${metadataResult.cid}\n\n` +
         `View on explorer: ${aeneid.blockExplorers?.default.url}/tx/${registrationResult.txHash}\n\n` +
-        `Your track is now available in the bundle creator!`
+        `Your track is now available in the bundle creator!`,
+        { duration: 10000 }
       );
     } catch (error: any) {
       console.error('❌ Error registering track:', error);
-      alert(`Failed to register track: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to register track: ${error.message || 'Unknown error'}`);
     } finally {
       setIsRegistering(false);
     }
