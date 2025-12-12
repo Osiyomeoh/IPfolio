@@ -8,7 +8,7 @@
  * ⛓️ REAL BLOCKCHAIN REGISTRATION - Uses Story Protocol SDK for on-chain transactions
  */
 
-import { StoryClient, StoryConfig, SupportedChainIds, PILFlavor, WIP_TOKEN_ADDRESS } from '@story-protocol/core-sdk';
+import { StoryClient, StoryConfig, SupportedChainIds, PILFlavor, WIP_TOKEN_ADDRESS, convertCIDtoHashIPFS } from '@story-protocol/core-sdk';
 import { WalletClient, Address, parseEther } from 'viem';
 import { http } from 'viem';
 import { aeneid } from '../config/chains';
@@ -97,11 +97,14 @@ export async function registerIPAsset(
       // Register existing NFT as IP asset
       // ipMetadata must match IpMetadataForWorkflow type:
       // - ipMetadataURI: URI of the IP metadata (e.g., IPFS URL)
-      // - ipMetadataHash: Hash of the IP metadata
+      // - ipMetadataHash: Hash of the IP metadata (bytes32, not CID)
       // - nftMetadataURI: URI of the NFT metadata (e.g., IPFS URL)
-      // - nftMetadataHash: Hash of the NFT metadata
-      const ipfsHash = params.metadata?.ipfsHash || '';
-      const ipfsUrl = params.metadata?.ipfsUrl || `ipfs://${ipfsHash}`;
+      // - nftMetadataHash: Hash of the NFT metadata (bytes32, not CID)
+      const ipfsCID = params.metadata?.ipfsHash || ''; // This is actually a CID, not a hash
+      const ipfsUrl = params.metadata?.ipfsUrl || `ipfs://${ipfsCID}`;
+      
+      // Convert IPFS CID to bytes32 hash (required by Story Protocol)
+      const ipfsHash = ipfsCID ? convertCIDtoHashIPFS(ipfsCID) : '0x0' as `0x${string}`;
       
       // Use IPFS metadata if available, otherwise construct from params
       response = await storyClient.ipAsset.register({
@@ -109,9 +112,9 @@ export async function registerIPAsset(
         tokenId,
         ipMetadata: {
           ipMetadataURI: ipfsUrl,
-          ipMetadataHash: ipfsHash as `0x${string}` || '0x0' as `0x${string}`,
+          ipMetadataHash: ipfsHash,
           nftMetadataURI: ipfsUrl, // Use same metadata for NFT
-          nftMetadataHash: ipfsHash as `0x${string}` || '0x0' as `0x${string}`,
+          nftMetadataHash: ipfsHash,
         },
       });
     } else {
@@ -129,8 +132,12 @@ export async function registerIPAsset(
       console.log('🎨 Minting NFT and registering IP asset...', { spgNftContract });
 
       // Get IPFS metadata
-      const ipfsHash = params.metadata?.ipfsHash || '';
-      const ipfsUrl = params.metadata?.ipfsUrl || `https://ipfs.io/ipfs/${ipfsHash}`;
+      const ipfsCID = params.metadata?.ipfsHash || ''; // This is actually a CID, not a hash
+      const ipfsUrl = params.metadata?.ipfsUrl || `https://ipfs.io/ipfs/${ipfsCID}`;
+      
+      // Convert IPFS CID to bytes32 hash (required by Story Protocol)
+      // Story Protocol expects bytes32 hash, not the CID string
+      const ipfsHash = ipfsCID ? convertCIDtoHashIPFS(ipfsCID) : '0x0' as `0x${string}`;
       
       // Get royalty rate from metadata (if provided) for license terms
       const royaltyRate = params.metadata?.royaltyRate ? parseFloat(params.metadata.royaltyRate as string) : 5; // Default 5%
@@ -152,9 +159,9 @@ export async function registerIPAsset(
         }],
         ipMetadata: {
           ipMetadataURI: ipfsUrl,
-          ipMetadataHash: ipfsHash as `0x${string}` || '0x0' as `0x${string}`,
+          ipMetadataHash: ipfsHash,
           nftMetadataURI: ipfsUrl,
-          nftMetadataHash: ipfsHash as `0x${string}` || '0x0' as `0x${string}`,
+          nftMetadataHash: ipfsHash,
         },
       });
 
