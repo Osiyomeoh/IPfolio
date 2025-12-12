@@ -39,82 +39,80 @@ function App() {
   const [selectedBundleForTrading, setSelectedBundleForTrading] = useState<string | null>(null);
   const [isLoadingBundles, setIsLoadingBundles] = useState(false);
 
-  // Load bundles from localStorage on mount
+  // Load bundles from blockchain using stored addresses
   useEffect(() => {
-    const loadBundlesFromStorage = () => {
-      try {
-        const stored = localStorage.getItem('ipfolio_bundles');
-        if (stored) {
-          const bundles = JSON.parse(stored) as Bundle[];
-          setCreatedBundles(bundles);
-          console.log('📦 Loaded bundles from localStorage:', bundles.length);
-        }
-      } catch (error) {
-        console.error('Error loading bundles from localStorage:', error);
-      }
-    };
-
-    loadBundlesFromStorage();
-  }, []);
-
-  // Save bundles to localStorage whenever they change
-  useEffect(() => {
-    if (createdBundles.length > 0) {
-      try {
-        localStorage.setItem('ipfolio_bundles', JSON.stringify(createdBundles));
-        console.log('💾 Saved bundles to localStorage:', createdBundles.length);
-      } catch (error) {
-        console.error('Error saving bundles to localStorage:', error);
-      }
-    }
-  }, [createdBundles]);
-
-  // Load bundle data from blockchain if we have addresses (only once on mount/connect)
-  useEffect(() => {
-    const loadBundleDataFromChain = async () => {
+    const loadBundlesFromBlockchain = async () => {
       if (!walletClient || !isConnected) return;
 
-      const stored = localStorage.getItem('ipfolio_bundles');
-      if (!stored) return;
-
-      const bundles = JSON.parse(stored) as Bundle[];
-      const bundlesWithAddresses = bundles.filter(b => b.address);
-      if (bundlesWithAddresses.length === 0) return;
-
-      setIsLoadingBundles(true);
       try {
+        // Get stored bundle addresses (we only store addresses, not full data)
+        const storedAddresses = localStorage.getItem('ipfolio_bundle_addresses');
+        if (!storedAddresses) {
+          setCreatedBundles([]);
+          return;
+        }
+
+        const addresses = JSON.parse(storedAddresses) as string[];
+        if (addresses.length === 0) {
+          setCreatedBundles([]);
+          return;
+        }
+
+        setIsLoadingBundles(true);
         const provider = new BrowserProvider(walletClient as any);
         
-        // Update bundle data from blockchain
-        const updatedBundles = await Promise.all(
-          bundles.map(async (bundle) => {
-            if (!bundle.address) return bundle;
-            
+        // Load all bundle data from blockchain
+        const bundles = await Promise.all(
+          addresses.map(async (address) => {
             try {
-              const bundleInfo = await getBundleInfo(provider, bundle.address as `0x${string}`);
+              const bundleInfo = await getBundleInfo(provider, address as `0x${string}`);
+              
+              // Get IP assets from contract
+              const ipAssets = bundleInfo.ipAssets;
+              
+              // Create bundle object with data from blockchain
+              // Note: We don't have track metadata on-chain, so we'll use placeholder tracks
               return {
-                ...bundle,
                 name: bundleInfo.name,
                 symbol: bundleInfo.symbol,
                 description: bundleInfo.description,
-              };
+                address: bundleInfo.address,
+                tracks: ipAssets.map((ipAsset, index) => ({
+                  ipAssetAddress: ipAsset,
+                  trackName: `${bundleInfo.name} Track ${index + 1}`,
+                  artist: 'Unknown',
+                  genre: 'Unknown',
+                  artwork: `https://via.placeholder.com/300/6366f1/ffffff?text=${encodeURIComponent(bundleInfo.name)}`,
+                  royaltyRate: '0%',
+                  licenseTerms: 'On-chain',
+                })) as SigmaMusicTrack[],
+              } as Bundle;
             } catch (error) {
-              console.error(`Error loading bundle ${bundle.address}:`, error);
-              return bundle; // Return original if fetch fails
+              console.error(`Error loading bundle ${address}:`, error);
+              // Return minimal bundle if contract read fails
+              return {
+                name: 'Unknown Bundle',
+                symbol: 'UNK',
+                description: 'Failed to load from blockchain',
+                address: address,
+                tracks: [],
+              } as Bundle;
             }
           })
         );
 
-        setCreatedBundles(updatedBundles);
+        setCreatedBundles(bundles);
+        console.log('📦 Loaded bundles from blockchain:', bundles.length);
       } catch (error) {
-        console.error('Error loading bundle data from chain:', error);
+        console.error('Error loading bundles from blockchain:', error);
+        setCreatedBundles([]);
       } finally {
         setIsLoadingBundles(false);
       }
     };
 
-    loadBundleDataFromChain();
-  }, [isConnected, walletClient]); // Only run when connection changes, not on bundle changes
+    loadBundlesFromBlockchain();
+  }, [isConnected, walletClient]);
 
   const handleBundleCreate = async (bundle: {
     name: string;
@@ -162,9 +160,15 @@ function App() {
         txHash: result.txHash,
       };
 
-      const updatedBundles = [...createdBundles, newBundle];
-      setCreatedBundles(updatedBundles);
-      // Save to localStorage (handled by useEffect)
+      // Store bundle address in localStorage for persistence
+      const storedAddresses = JSON.parse(localStorage.getItem('ipfolio_bundle_addresses') || '[]') as string[];
+      if (!storedAddresses.includes(result.address)) {
+        storedAddresses.push(result.address);
+        localStorage.setItem('ipfolio_bundle_addresses', JSON.stringify(storedAddresses));
+      }
+
+      // Add to created bundles (will be reloaded from blockchain)
+      setCreatedBundles([...createdBundles, newBundle]);
 
       // Show success message with contract address
       toast.success(
