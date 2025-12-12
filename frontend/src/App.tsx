@@ -388,76 +388,105 @@ function App() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {createdBundles.map((bundle, index) => (
-                  <div
-                    key={index}
-                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                        <Music className="w-6 h-6 text-white" />
+              <>
+                {/* Bundle Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  {createdBundles.map((bundle, index) => (
+                    <div
+                      key={index}
+                      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-lg transition-shadow ${
+                        selectedBundleForTrading === bundle.address ? 'ring-2 ring-purple-500 dark:ring-purple-400' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                          <Music className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white">{bundle.name}</h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{bundle.symbol}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">{bundle.name}</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{bundle.symbol}</p>
+                      <p className="text-gray-600 dark:text-gray-300 mb-4">{bundle.description}</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {bundle.tracks.length} tracks
+                          </span>
+                          {bundle.address && (
+                            <span className="text-xs text-green-600 dark:text-green-400 font-mono">
+                              ✓ Deployed
+                            </span>
+                          )}
+                        </div>
+                        {bundle.address && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
+                            {bundle.address}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          {bundle.address && (
+                            <>
+                              <a
+                                href={`https://aeneid.explorer.story.foundation/address/${bundle.address}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 px-3 py-2 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-lg text-white text-xs font-semibold transition-all text-center"
+                              >
+                                Explorer
+                              </a>
+                              <button
+                                onClick={() => setSelectedBundleForTrading(
+                                  selectedBundleForTrading === bundle.address ? null : bundle.address || null
+                                )}
+                                className={`flex-1 px-3 py-2 rounded-lg text-white text-xs font-semibold transition-all ${
+                                  selectedBundleForTrading === bundle.address
+                                    ? 'bg-gray-600 dark:bg-gray-500 hover:bg-gray-700 dark:hover:bg-gray-600'
+                                    : 'bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600'
+                                }`}
+                              >
+                                {selectedBundleForTrading === bundle.address ? 'Hide Trade' : 'Trade'}
+                              </button>
+                            </>
+                          )}
+                          <button className="flex-1 px-3 py-2 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 rounded-lg text-white text-xs font-semibold transition-all">
+                            Details
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">{bundle.description}</p>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {bundle.tracks.length} tracks
-                              </span>
-                              {bundle.address && (
-                                <span className="text-xs text-green-600 dark:text-green-400 font-mono">
-                                  ✓ Deployed
-                                </span>
-                              )}
-                            </div>
-                            {bundle.address && (
-                              <div className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">
-                                {bundle.address}
-                              </div>
-                            )}
-                            <div className="flex gap-2">
-                              {bundle.address && (
-                                <>
-                                  <a
-                                    href={`https://aeneid.explorer.story.foundation/address/${bundle.address}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex-1 px-3 py-2 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-lg text-white text-xs font-semibold transition-all text-center"
-                                  >
-                                    Explorer
-                                  </a>
-                                  <button
-                                    onClick={() => setSelectedBundleForTrading(
-                                      selectedBundleForTrading === bundle.address ? null : bundle.address || null
-                                    )}
-                                    className="flex-1 px-3 py-2 bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600 rounded-lg text-white text-xs font-semibold transition-all"
-                                  >
-                                    {selectedBundleForTrading === bundle.address ? 'Hide Trade' : 'Trade'}
-                                  </button>
-                                </>
-                              )}
-                              <button className="flex-1 px-3 py-2 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 rounded-lg text-white text-xs font-semibold transition-all">
-                                Details
-                              </button>
-                            </div>
-                            {selectedBundleForTrading === bundle.address && bundle.address && (
-                              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                <BundleTrading
-                                  bundleAddress={bundle.address as `0x${string}`}
-                                  bundleSymbol={bundle.symbol}
-                                  bundleName={bundle.name}
-                                />
-                              </div>
-                            )}
-                          </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+
+                {/* Trading Section - Full Width Below Grid */}
+                {selectedBundleForTrading && (() => {
+                  const bundle = createdBundles.find(b => b.address === selectedBundleForTrading);
+                  if (!bundle || !bundle.address) return null;
+                  
+                  return (
+                    <div className="mt-8">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                          Trade {bundle.symbol} - {bundle.name}
+                        </h3>
+                        <button
+                          onClick={() => setSelectedBundleForTrading(null)}
+                          className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        >
+                          ✕ Close
+                        </button>
+                      </div>
+                      <div className="max-w-2xl mx-auto">
+                        <BundleTrading
+                          bundleAddress={bundle.address as `0x${string}`}
+                          bundleSymbol={bundle.symbol}
+                          bundleName={bundle.name}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
             )}
           </div>
         )}
