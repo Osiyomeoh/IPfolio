@@ -64,7 +64,7 @@ export default function BundleTrading({ bundleAddress, bundleSymbol, bundleName 
 
   const handleTrade = async () => {
     if (!walletClient || !address || !amount) {
-      alert('Please connect wallet and enter amount');
+      toast.warning('Please connect wallet and enter amount');
       return;
     }
 
