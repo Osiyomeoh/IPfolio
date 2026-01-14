@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, TrendingUp, Shield, Zap, Music, Wand2 } from 'lucide-react';
+import { Sparkles, TrendingUp, Shield, Zap, Music, Wand2, Search, Plus, Loader } from 'lucide-react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { BrowserProvider, ethers } from 'ethers';
 import Navbar from './components/Navbar';
@@ -38,6 +38,8 @@ function App() {
   const [registeredTracks, setRegisteredTracks] = useState<SigmaMusicTrack[]>([]);
   const [selectedBundleForTrading, setSelectedBundleForTrading] = useState<string | null>(null);
   const [isLoadingBundles, setIsLoadingBundles] = useState(false);
+  const [bundleAddressInput, setBundleAddressInput] = useState('');
+  const [isAddingBundle, setIsAddingBundle] = useState(false);
 
   // Load bundles from blockchain using stored addresses
   useEffect(() => {
@@ -117,6 +119,69 @@ function App() {
 
     loadBundlesFromBlockchain();
   }, []); // Load on mount, not dependent on wallet connection
+
+  const addBundleByAddress = async (address: string) => {
+    if (!address || !address.startsWith('0x') || address.length !== 42) {
+      toast.error('Please enter a valid Ethereum address (0x...)');
+      return;
+    }
+
+    setIsAddingBundle(true);
+    try {
+      // Use public RPC provider to read from blockchain
+      const publicProvider = new ethers.JsonRpcProvider(
+        process.env.REACT_APP_AENEID_RPC_URL || 'https://aeneid.storyrpc.io'
+      );
+
+      // Try to load bundle from blockchain
+      const bundleInfo = await getBundleInfo(publicProvider, address as `0x${string}`);
+      
+      // Get IP assets from contract
+      const ipAssets = bundleInfo.ipAssets;
+      
+      // Create bundle object with data from blockchain
+      const newBundle: Bundle = {
+        name: bundleInfo.name,
+        symbol: bundleInfo.symbol,
+        description: bundleInfo.description,
+        address: bundleInfo.address,
+        tracks: ipAssets.map((ipAsset, index) => ({
+          ipAssetAddress: ipAsset,
+          trackName: `${bundleInfo.name} Track ${index + 1}`,
+          artist: 'Unknown',
+          genre: 'Unknown',
+          artwork: `https://via.placeholder.com/300/6366f1/ffffff?text=${encodeURIComponent(bundleInfo.name)}`,
+          royaltyRate: '0%',
+          licenseTerms: 'On-chain',
+        })) as SigmaMusicTrack[],
+      };
+
+      // Add to bundles list
+      setCreatedBundles(prev => {
+        // Check if bundle already exists
+        if (prev.some(b => b.address?.toLowerCase() === address.toLowerCase())) {
+          toast.warning('Bundle already in marketplace');
+          return prev;
+        }
+        return [...prev, newBundle];
+      });
+
+      // Save address to localStorage
+      const storedAddresses = JSON.parse(localStorage.getItem('ipfolio_bundle_addresses') || '[]') as string[];
+      if (!storedAddresses.includes(address.toLowerCase())) {
+        storedAddresses.push(address.toLowerCase());
+        localStorage.setItem('ipfolio_bundle_addresses', JSON.stringify(storedAddresses));
+      }
+
+      toast.success(`Bundle "${bundleInfo.name}" added to marketplace!`);
+      setBundleAddressInput('');
+    } catch (error: any) {
+      console.error('Error adding bundle:', error);
+      toast.error(`Failed to load bundle: ${error.message || 'Invalid bundle address or contract not found'}`);
+    } finally {
+      setIsAddingBundle(false);
+    }
+  };
 
   const handleBundleCreate = async (bundle: {
     name: string;
@@ -376,14 +441,64 @@ function App() {
 
         {currentView === 'marketplace' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
-              Bundle Marketplace
-            </h2>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Bundle Marketplace
+              </h2>
+              {isLoadingBundles && (
+                <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Loader className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">Loading from blockchain...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Add Bundle by Address */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <Search className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Discover Bundle on Blockchain
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Enter a bundle contract address to load it from the blockchain
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={bundleAddressInput}
+                  onChange={(e) => setBundleAddressInput(e.target.value)}
+                  placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+                  className="flex-1 px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 font-mono text-sm"
+                />
+                <button
+                  onClick={() => addBundleByAddress(bundleAddressInput)}
+                  disabled={isAddingBundle || !bundleAddressInput}
+                  className="px-6 py-2 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 rounded-lg text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isAddingBundle ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Add Bundle
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
             
             {createdBundles.length === 0 ? (
               <div className="text-center py-20 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <Music className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">No bundles created yet</p>
+                <p className="text-xl text-gray-600 dark:text-gray-400 mb-2">No bundles found</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+                  Use the search above to discover bundles on the blockchain, or create your own
+                </p>
                 <button
                   onClick={() => setCurrentView('create')}
                   className="px-6 py-3 bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600 rounded-lg text-white font-semibold transition-colors"
